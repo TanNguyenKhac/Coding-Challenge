@@ -39,6 +39,19 @@ function Get-FrontmatterField([string]$Content, [string]$Field) {
     return $match.Groups['value'].Value.Trim().Trim('"').Trim("'")
 }
 
+function Assert-InvocationPolicy(
+    [string]$SkillName,
+    [bool]$ExpectedImplicit
+) {
+    $relative = ".agents/skills/$SkillName/agents/openai.yaml"
+    $content = Read-Text $relative
+    $expectedText = if ($ExpectedImplicit) { 'true' } else { 'false' }
+    $pattern = "(?m)^\s*allow_implicit_invocation:\s*$expectedText\s*$"
+    if ($content -notmatch $pattern) {
+        Add-Failure "Skill '$SkillName' must set allow_implicit_invocation: $expectedText (wf-implement-v2-optimization-vi.md section 12/15). Update '$relative' to the accepted invocation policy."
+    }
+}
+
 function Assert-ExactDirectories(
     [string]$RelativeRoot,
     [string[]]$Expected,
@@ -108,6 +121,120 @@ foreach ($skillName in $projectSkills) {
         if (-not (Test-Path -LiteralPath $referencePath -PathType Leaf)) {
             Add-Failure "Skill '$skillName' routes to missing reference '$reference'."
         }
+    }
+}
+
+Assert-InvocationPolicy 'wf-implement' $false
+foreach ($skillName in @(
+    'sk-backend-engineering',
+    'sk-ai-engineering',
+    'sk-test-engineering'
+)) {
+    Assert-InvocationPolicy $skillName $true
+}
+
+$requiredV2References = @(
+    '.agents/skills/wf-implement/references/task-contract.md',
+    '.agents/skills/wf-implement/references/execution-and-resume.md',
+    '.agents/skills/wf-implement/references/parallel-safety.md',
+    '.agents/skills/sk-backend-engineering/references/state-and-recovery.md',
+    '.agents/skills/sk-backend-engineering/references/data-change.md',
+    '.agents/skills/sk-ai-engineering/references/provider-and-cost.md',
+    '.agents/skills/sk-ai-engineering/references/structured-output-and-evaluation.md',
+    '.agents/skills/sk-test-engineering/references/test-modes.md'
+)
+foreach ($relative in $requiredV2References) {
+    if (-not (Test-Path -LiteralPath (Join-Path $rootPath $relative) -PathType Leaf)) {
+        Add-Failure "Missing v2 procedure '$relative' required by wf-implement-v2-optimization-vi.md section 13. Add the focused reference and route to it from its skill entrypoint."
+    }
+}
+
+$contracts = Read-Text 'docs/workflows/handoff-contracts.md'
+$requiredSchemas = @(
+    'work-package/v2',
+    'agent-task-result/v2',
+    'implementation-preflight/v1',
+    'implementation-progress/v2',
+    'candidate-manifest/v1',
+    'implementation-handoff/v2'
+)
+$schemaSectionPatterns = @{
+    'work-package/v2' = '(?s)## Implementation work package v2.*?```yaml\s*schema:\s*work-package/v2\b'
+    'agent-task-result/v2' = '(?s)## Agent task result v2.*?```yaml\s*schema:\s*agent-task-result/v2\b'
+    'implementation-preflight/v1' = '(?s)## Implementation progress v2.*?```yaml\s*schema:\s*implementation-preflight/v1\b'
+    'implementation-progress/v2' = '(?s)## Implementation progress v2.*?```json\s*\{\s*"schema":\s*"implementation-progress/v2"'
+    'candidate-manifest/v1' = '(?s)## Candidate identity.*?```yaml\s*schema:\s*candidate-manifest/v1\b'
+    'implementation-handoff/v2' = '(?s)## Implementation handoff v2.*?```yaml\s*schema:\s*implementation-handoff/v2\b'
+}
+foreach ($schema in $requiredSchemas) {
+    if ($contracts -notmatch $schemaSectionPatterns[$schema]) {
+        Add-Failure "Canonical contract identifier '$schema' is missing from its owned section in 'docs/workflows/handoff-contracts.md' (wf-implement-v2-optimization-vi.md sections 6-13). Restore the schema identifier there; this static check does not validate instance structure."
+    }
+}
+foreach ($candidateType in @('git-commit', 'content-manifest')) {
+    if ($contracts -notmatch "\b$([regex]::Escape($candidateType))\b") {
+        Add-Failure "Candidate identity type '$candidateType' is undocumented (wf-implement-v2-optimization-vi.md section 9). Restore the accepted candidate form in 'docs/workflows/handoff-contracts.md'."
+    }
+}
+$h2Section = [regex]::Match(
+    $contracts,
+    '(?s)An H2 record.*?```yaml\s*(?<body>.*?)```'
+)
+if (-not $h2Section.Success) {
+    Add-Failure "Cannot locate the canonical H2 approval record in 'docs/workflows/handoff-contracts.md'. Restore the action-scoped record required by wf-implement-v2-optimization-vi.md section 6 Phase G."
+}
+foreach ($field in @(
+    'gate', 'change_id', 'implementation_run_id', 'action', 'target', 'limits',
+    'rollback', 'idempotency_key', 'expires_at', 'decision'
+)) {
+    $fieldPattern = '(?m)^\s*' + [regex]::Escape($field) + '\s*:'
+    if ($h2Section.Success -and
+        $h2Section.Groups['body'].Value -notmatch $fieldPattern) {
+        Add-Failure "The canonical H2 record is missing '$field' (wf-implement-v2-optimization-vi.md section 6 Phase G). Add the action-scoped field to 'docs/workflows/handoff-contracts.md'."
+    }
+}
+
+$implementRoot = Join-Path $rootPath '.agents/skills/wf-implement'
+$implementText = ''
+if (Test-Path -LiteralPath $implementRoot -PathType Container) {
+    $implementText = @(
+        Get-ChildItem -LiteralPath $implementRoot -File -Recurse |
+            ForEach-Object { [IO.File]::ReadAllText($_.FullName) }
+    ) -join "`n"
+}
+foreach ($mode in @('apply', 'resume', 'fix')) {
+    if ($implementText -notmatch "\b$mode\b") {
+        Add-Failure "wf-implement is missing '$mode' mode (wf-implement-v2-optimization-vi.md section 4). Document the mode and its required inputs under '.agents/skills/wf-implement/'."
+    }
+}
+foreach ($schema in $requiredSchemas) {
+    if ($implementText -notmatch [regex]::Escape($schema)) {
+        Add-Failure "wf-implement does not consume '$schema' (wf-implement-v2-optimization-vi.md sections 6-9). Reference the canonical contract from its entrypoint or procedure files."
+    }
+}
+if ($implementText -match '\$sk-quality-check\b|\$sk-release-check\b' -or
+    $implementText -match '(?im)^\s*\d+\..*\b(delegate|dispatch|invoke)\b.*\breviewer\b') {
+    Add-Failure "wf-implement routes to verification ownership (wf-implement-v2-optimization-vi.md sections 3/15). Remove reviewer and quality/release skill dispatch; hand the fixed candidate to wf-verify."
+}
+if ($implementText -notmatch 'Never call `reviewer`') {
+    Add-Failure "wf-implement must explicitly forbid calling reviewer (wf-implement-v2-optimization-vi.md section 10). Restore the WF2/WF3 separation safeguard in its entrypoint."
+}
+if ($implementText -notmatch 'fork_turns:\s*"none"') {
+    Add-Failure 'wf-implement does not suppress inherited conversation history for bounded agent tasks (wf-implement-v2-optimization-vi.md sections 1/6 Phase D). Use fork_turns: "none" or an equivalent no-history spawn and supply only the task brief.'
+}
+
+$corePath = Join-Path $rootPath '.harness-core'
+if (Test-Path -LiteralPath $corePath -PathType Container) {
+    $runtimeState = @(
+        Get-ChildItem -LiteralPath $corePath -File -Recurse |
+            Where-Object {
+                $_.Name -match '^(progress|implementation-handoff|agent-task-result|work-package).*\.(json|ya?ml)$' -or
+                $_.FullName.Substring($corePath.Length).TrimStart('\', '/') -match '(^|[\\/])artifacts[\\/](handoffs|evidence)([\\/]|$)'
+            }
+    )
+    foreach ($file in $runtimeState) {
+        $relative = $file.FullName.Substring($rootPath.Length).TrimStart('\', '/')
+        Add-Failure "Runtime state '$relative' is inside managed Harness core (wf-implement-v2-optimization-vi.md sections 2/8/15). Move the run artifact to 'artifacts/handoffs/' or 'artifacts/evidence/'."
     }
 }
 
@@ -189,6 +316,20 @@ foreach ($agentName in $agents) {
     }
 }
 
+foreach ($agentName in @('backend-dev', 'ai-dev')) {
+    $relative = ".codex/agents/$agentName.toml"
+    $content = Read-Text $relative
+    foreach ($pattern in @(
+        '(?i)exactly one supplied work-package/v2',
+        '(?i)modify only allowed paths',
+        '\bagent-task-result/v2\b'
+    )) {
+        if ($content -notmatch $pattern) {
+            Add-Failure "Implementation agent '$agentName' is missing its bounded v2 task/result guard matching '$pattern' (wf-implement-v2-optimization-vi.md section 11). Update '$relative' without expanding the role."
+        }
+    }
+}
+
 $reviewer = Read-Text '.codex/agents/reviewer.toml'
 if ($reviewer -notmatch '(?m)^sandbox_mode\s*=\s*["'']read-only["'']\s*$') {
     Add-Failure "Reviewer must set sandbox_mode = 'read-only'."
@@ -208,7 +349,7 @@ $workflowRules = @{
     'wf-implement' = @(
         '\bbackend-dev\b', '\bai-dev\b', '\$sk-backend-engineering\b',
         '\$sk-ai-engineering\b', '\$sk-test-engineering\b', '\bH1\b', '\bH2\b',
-        '(?is)(missing|failed|malformed|null)[\s\S]{0,160}(blocked|failed|success)'
+        '(?is)(missing|interrupted|failed|malformed|null)[\s\S]{0,180}(never|not)[\s\S]{0,40}(success|done|pass)'
     )
     'wf-verify' = @(
         '\breviewer\b', '\$sk-quality-check\b', '\$sk-release-check\b', '\bH3\b',
@@ -279,4 +420,4 @@ if ($failures.Count -gt 0) {
 }
 
 Write-Output 'Codex agent harness validation passed.'
-Write-Output 'Validated: 6 capability skills, 3 workflow skills, 4 custom agents, generic boundaries, HITL routing, and null-result safeguards.'
+Write-Output 'Validated: 6 capability skills, 3 workflow skills, 4 custom agents, WF2 v2 contract identifiers/modes, bounded task routing, invocation policy, HITL separation, generic boundaries, and null-result safeguards.'

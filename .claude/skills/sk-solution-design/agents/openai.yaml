@@ -1,0 +1,7 @@
+interface:
+  display_name: "Solution Design"
+  short_description: "Design source-backed solutions for approval"
+  default_prompt: "Use $sk-solution-design to analyze this request and produce an approval-ready discovery handoff."
+
+policy:
+  allow_implicit_invocation: true

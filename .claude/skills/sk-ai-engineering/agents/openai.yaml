@@ -1,0 +1,6 @@
+interface:
+  display_name: "AI Engineering"
+  short_description: "Build provider-neutral AI integrations"
+  default_prompt: "Use $sk-ai-engineering to implement this approved AI integration with contract and evaluation proof."
+policy:
+  allow_implicit_invocation: true

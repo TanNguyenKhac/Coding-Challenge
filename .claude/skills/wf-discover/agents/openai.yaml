@@ -1,0 +1,7 @@
+interface:
+  display_name: "Discover Workflow"
+  short_description: "Prepare an H1-ready solution package"
+  default_prompt: "Use $wf-discover to analyze this change and prepare it for H1 approval."
+
+policy:
+  allow_implicit_invocation: false

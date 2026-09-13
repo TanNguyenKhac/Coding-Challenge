@@ -1,0 +1,6 @@
+interface:
+  display_name: "Quality Check"
+  short_description: "Verify behavior and evaluate outputs"
+  default_prompt: "Use $sk-quality-check to run the approved checks and return an evidence-backed passed, failed, blocked, or not-evaluated result."
+policy:
+  allow_implicit_invocation: true
