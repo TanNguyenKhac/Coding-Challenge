@@ -1,0 +1,6 @@
+interface:
+  display_name: "Test Engineering"
+  short_description: "Create traceable cases and automated tests"
+  default_prompt: "Use $sk-test-engineering to turn these approved requirements into traceable test cases and executable tests."
+policy:
+  allow_implicit_invocation: true

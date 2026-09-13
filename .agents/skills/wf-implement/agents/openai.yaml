@@ -1,0 +1,7 @@
+interface:
+  display_name: "Implement"
+  short_description: "Implement approved changes with evidence"
+  default_prompt: "Use $wf-implement to implement the approved change and prepare a candidate for verification."
+
+policy:
+  allow_implicit_invocation: false

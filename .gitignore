@@ -1,0 +1,6 @@
+# Harness core maintenance binary
+scripts/bin/harness
+scripts/bin/harness.exe
+.codex/
+.harness-backup/
+.harness-core/

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Verify Workflow"
+  short_description: "Independently verify a fixed candidate"
+  default_prompt: "Use $wf-verify to verify this fixed candidate and prepare an H3 verdict."
+
+policy:
+  allow_implicit_invocation: false

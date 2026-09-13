@@ -1,0 +1,6 @@
+interface:
+  display_name: "Release Check"
+  short_description: "Review security and delivery readiness"
+  default_prompt: "Use $sk-release-check to assess this demo or submission for security and delivery readiness with evidence."
+policy:
+  allow_implicit_invocation: true

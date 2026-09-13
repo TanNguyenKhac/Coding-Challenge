@@ -1,0 +1,6 @@
+interface:
+  display_name: "Backend Engineering"
+  short_description: "Implement approved server-side slices"
+  default_prompt: "Use $sk-backend-engineering to implement this approved server-side slice with matching recovery and validation proof."
+policy:
+  allow_implicit_invocation: true
