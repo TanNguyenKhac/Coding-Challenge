@@ -1,0 +1,36 @@
+{
+  "schema": "implementation-progress/v2",
+  "run_id": "RUN-CHG-002-M4-02",
+  "change_id": "CHG-002",
+  "mode": "apply",
+  "approval_ref": "artifacts/handoffs/CHG-002/H1-M4-r2.yaml",
+  "discovery_handoff_ref": "artifacts/handoffs/CHG-002-discovery.yaml",
+  "base_revision": "0e901d4167af93964926a1652b82068a1d4cc84e",
+  "handoff_sha256": "sha256:5107f5075fffaed917d31e42e8c0067d8621caf3c01b50891d1392866df73012",
+  "preflight_snapshot_ref": "artifacts/evidence/CHG-002/RUN-CHG-002-M4-02/preflight.yaml",
+  "preflight_snapshot_sha256": "sha256:d4e5e9501918f7c54afa6711baffd1b4faffb44a848ff4922131890a13075871",
+  "starting_content_identity": "sha256:15e626f538c8c702b9e7b2bb9304b3bf8cd8d7edff412f0397c69e61b8630595",
+  "status": "ready-for-verification",
+  "candidate_ref": {
+    "type": "content-manifest",
+    "value": "artifacts/evidence/CHG-002/RUN-CHG-002-M4-02/candidate-manifest.json",
+    "manifest_sha256": "sha256:7b45a7f03589dff07c5c6dd9f0baef555dd33e598de1655072c684f5792db11c",
+    "dirty": true
+  },
+  "tasks": [
+    {
+      "task_id": "IMP-M4-BACKEND-01",
+      "owner": "backend-dev",
+      "status": "done",
+      "attempt": 2,
+      "fix_round": 1,
+      "retry_limit": 2,
+      "agent_id": "/root/chg002_m4_backend",
+      "dispatch_identity": "sha256:35b724eaf25071ec63d8a32f96742582d41d0587a6fa9e745bd8d21ec8f0f76f",
+      "result_identity": "sha256:4b483fc9a975704ec03a28caa6377a8283b6ed2dc3a3249be11923fd14ce9762",
+      "evidence_ref": "artifacts/evidence/CHG-002/RUN-CHG-002-M4-02/IMP-M4-BACKEND-01.json",
+      "last_error": null
+    }
+  ],
+  "external_actions": []
+}

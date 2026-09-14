@@ -1,0 +1,91 @@
+{
+  "schema": "agent-task-result/v2",
+  "run_id": "RUN-CHG-002-M4-02",
+  "task_id": "IMP-M4-BACKEND-01",
+  "change_id": "CHG-002",
+  "owner": "backend-dev",
+  "status": "done",
+  "attempt": 2,
+  "skills": [
+    "sk-backend-engineering",
+    "sk-test-engineering"
+  ],
+  "base_identity": "sha256:35b724eaf25071ec63d8a32f96742582d41d0587a6fa9e745bd8d21ec8f0f76f",
+  "result_identity": "sha256:4b483fc9a975704ec03a28caa6377a8283b6ed2dc3a3249be11923fd14ce9762",
+  "requirement_refs": [
+    "REQ-001",
+    "REQ-002",
+    "REQ-003",
+    "REQ-004",
+    "REQ-006",
+    "REQ-007"
+  ],
+  "acceptance_refs": [
+    "AC-001",
+    "AC-002",
+    "AC-003",
+    "AC-004",
+    "AC-005",
+    "AC-006"
+  ],
+  "changed_paths": [
+    "app/api/v1/jobs.py",
+    "app/main.py",
+    "app/services/job_service.py",
+    "app/services/queue.py",
+    "tests/test_api.py",
+    "tests/test_queue.py"
+  ],
+  "test_evidence": {
+    "mode": "tdd",
+    "red": [
+      {
+        "command": "pytest tests/test_api.py tests/test_queue.py -v",
+        "started_at": "2026-09-14T04:58:04.5790948Z",
+        "finished_at": "2026-09-14T04:58:09.1879231Z",
+        "exit_code": 1,
+        "output_summary": "Collected 20 tests: 9 pre-existing repository tests passed and 11 M4 tests failed for the intended missing behavior (API returned 404, queue and run_pipeline raised NotImplementedError, lifespan omitted reset/start/stop, and /artifacts was not mounted). Collection succeeded; there was no import, syntax, credential, provider, or environment failure.",
+        "artifact_ref": null
+      }
+    ],
+    "green": [
+      {
+        "command": "pytest tests/test_api.py tests/test_queue.py -v",
+        "started_at": "2026-09-14T05:01:56.2325948Z",
+        "finished_at": "2026-09-14T05:02:00.0507036Z",
+        "exit_code": 0,
+        "output_summary": "Collected 21 tests; 21 passed in 1.57s. Coverage includes REST success/validation/error/artifact behavior, non-blocking POST timing, queue peak concurrency <= configured value, worker error isolation, active-worker cancellation, worker-owned session enter/exit, terminal failure persistence, lifespan reset/start/stop, static mount, and default concurrency wiring.",
+        "artifact_ref": null
+      }
+    ],
+    "characterization": [],
+    "contract": [],
+    "verification": [],
+    "reason": "WP-06 introduces approved observable API, queue concurrency, worker-session, lifecycle, and recovery behavior with executable SPEC-01/SPEC-02 oracles."
+  },
+  "checks": [
+    {
+      "command": "pytest tests/test_api.py tests/test_queue.py -v",
+      "started_at": "2026-09-14T05:01:56.2325948Z",
+      "finished_at": "2026-09-14T05:02:00.0507036Z",
+      "exit_code": 0,
+      "output_summary": "Required package check passed: 21 collected, 21 passed in 1.57s; no warnings or failures.",
+      "artifact_ref": null
+    }
+  ],
+  "baseline_failures": [],
+  "introduced_failures": [],
+  "self_review": {
+    "allowed_paths": "passed",
+    "acceptance_trace": "passed",
+    "unrelated_changes": "none",
+    "sensitive_output": "none"
+  },
+  "contract_deltas": [],
+  "external_actions": [],
+  "concerns": [],
+  "deviations": [
+    "Fix round 1 corrected the prior result_identity calculation, which had included a trailing LF not present in the canonical dispatch algorithm; product and test bytes were unchanged."
+  ],
+  "unresolved": []
+}

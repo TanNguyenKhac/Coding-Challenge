@@ -1,10 +1,13 @@
 import asyncio
+import os
 
 import pytest
 import pytest_asyncio
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from app.database import Base
+from app.database import Base, get_session
+from app.pipeline.assembler import MockAssembler
 from app.schemas.job import VideoConfig
 from app.schemas.script import ScriptChunk, VideoScript
 
@@ -17,17 +20,52 @@ def event_loop():
 
 
 @pytest_asyncio.fixture
-async def db_session():
+async def db_engine():
     engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False)
-    session_factory = async_sessionmaker(engine, expire_on_commit=False)
-
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    yield engine
+    await engine.dispose()
 
-    async with session_factory() as session:
+
+@pytest_asyncio.fixture
+async def db_session_factory(db_engine):
+    return async_sessionmaker(db_engine, class_=AsyncSession, expire_on_commit=False)
+
+
+@pytest_asyncio.fixture
+async def db_session(db_session_factory):
+    async with db_session_factory() as session:
         yield session
 
-    await engine.dispose()
+
+@pytest_asyncio.fixture
+async def async_client(db_session_factory, tmp_path):
+    from app.main import app
+    from app.services.queue import AsyncioWorkerQueue
+
+    async def _override_get_session():
+        async with db_session_factory() as session:
+            yield session
+
+    app.dependency_overrides[get_session] = _override_get_session
+
+    artifacts_dir = str(tmp_path / "artifacts" / "videos")
+    os.makedirs(artifacts_dir, exist_ok=True)
+
+    noop_queue = AsyncioWorkerQueue(worker_func=lambda job_id: None, concurrency=1)
+    app.state.job_queue = noop_queue
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://testserver") as client:
+        yield client
+
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def mock_assembler():
+    return MockAssembler()
 
 
 @pytest.fixture

@@ -1,0 +1,30 @@
+{
+  "schema": "implementation-progress/v2",
+  "run_id": "RUN-CHG-002-M2-01",
+  "change_id": "CHG-002",
+  "mode": "apply",
+  "approval_ref": "artifacts/handoffs/CHG-002/H1-M2.yaml",
+  "discovery_handoff_ref": "artifacts/handoffs/CHG-002-discovery.yaml",
+  "base_revision": "cbe20ddd47f24bec700c56e6f817d4776c25a629",
+  "handoff_sha256": "sha256:5107f5075fffaed917d31e42e8c0067d8621caf3c01b50891d1392866df73012",
+  "preflight_snapshot_ref": "artifacts/evidence/CHG-002/RUN-CHG-002-M2-01/preflight.yaml",
+  "preflight_snapshot_sha256": "sha256:2a7cac4d01091ad3eac3d89d70f215b0ffeeac149d5b03eb9114c9a7c102ae66",
+  "starting_content_identity": "sha256:382c6e6d0b1e1c7d3453e155bb3606b079a9929b756a86d3f3c477f346b473c9",
+  "status": "in-progress",
+  "tasks": [
+    {
+      "task_id": "IMP-M2-AI-01",
+      "owner": "ai-dev",
+      "status": "in-progress",
+      "attempt": 1,
+      "fix_round": 0,
+      "retry_limit": 2,
+      "agent_id": "/root/chg002_m2_ai",
+      "dispatch_identity": "sha256:2ed0760cbed246d2039742fd5d25e24f3a3b0ca073487afbc44183038063e242",
+      "result_identity": null,
+      "evidence_ref": "artifacts/evidence/CHG-002/RUN-CHG-002-M2-01/IMP-M2-AI-01.json",
+      "last_error": null
+    }
+  ],
+  "external_actions": []
+}

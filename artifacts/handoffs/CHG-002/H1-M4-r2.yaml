@@ -1,0 +1,29 @@
+schema: approval-record/v1
+approval_id: HITL-CHG-002-H1-M4-R2-20260914
+gate: H1
+change_id: CHG-002
+handoff_ref: artifacts/handoffs/CHG-002-discovery.yaml
+handoff_sha256: sha256:5107f5075fffaed917d31e42e8c0067d8621caf3c01b50891d1392866df73012
+base_revision: 0e901d4167af93964926a1652b82068a1d4cc84e
+decision: approve-with-conditions
+approved_scope:
+  - "Milestone 4 / WP-06 theo docs/plans/PHASED-IMPLEMENTATION-PLAN.md"
+  - app/services/queue.py
+  - app/services/job_service.py
+  - app/api/v1/jobs.py
+  - app/main.py
+  - tests/test_api.py
+  - tests/test_queue.py
+  - docs/plans/active/CHG-002-langgraph-sqlalchemy-mvp.md
+  - artifacts/evidence/CHG-002/RUN-CHG-002-M4-02/
+  - artifacts/handoffs/CHG-002/
+approved_option: OPT-A
+conditions:
+  - "Rebaseline tại commit 0e901d4167af93964926a1652b82068a1d4cc84e sau khi RUN-CHG-002-M4-01 bị revision drift."
+  - "Giữ nguyên thay đổi ngoài WP-06; chỉ mở rộng tests/test_api.py cho contract endpoint Milestone 4."
+  - "Dùng AsyncioWorkerQueue in-process theo SPEC-02; không đặt thêm queue capacity hoặc overload API policy khi authority chưa định nghĩa."
+  - "Không gọi LLM/TTS provider thật, không dùng credential và không thực hiện external action."
+external_effect_policy: deny
+approver: user
+decided_at: "2026-09-14T04:52:00Z"
+expires_at: null

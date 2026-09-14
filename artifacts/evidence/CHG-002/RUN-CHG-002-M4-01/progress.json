@@ -1,0 +1,30 @@
+{
+  "schema": "implementation-progress/v2",
+  "run_id": "RUN-CHG-002-M4-01",
+  "change_id": "CHG-002",
+  "mode": "apply",
+  "approval_ref": "artifacts/handoffs/CHG-002/H1-M4.yaml",
+  "discovery_handoff_ref": "artifacts/handoffs/CHG-002-discovery.yaml",
+  "base_revision": "cbe20ddd47f24bec700c56e6f817d4776c25a629",
+  "handoff_sha256": "sha256:5107f5075fffaed917d31e42e8c0067d8621caf3c01b50891d1392866df73012",
+  "preflight_snapshot_ref": "artifacts/evidence/CHG-002/RUN-CHG-002-M4-01/preflight.yaml",
+  "preflight_snapshot_sha256": "sha256:8a46e7ad4d4603a0aba5f9c9f2768867d91aa6d5f0b1febe78585fe33d416acc",
+  "starting_content_identity": "sha256:f607c64eccdbd18612fab616630d0891ef15b8bdb9de6f4afe2c0ce8365522dd",
+  "status": "blocked",
+  "tasks": [
+    {
+      "task_id": "IMP-M4-BACKEND-01",
+      "owner": "backend-dev",
+      "status": "blocked",
+      "attempt": 1,
+      "fix_round": 0,
+      "retry_limit": 2,
+      "agent_id": "/root/chg002_m4_backend",
+      "dispatch_identity": "sha256:35b724eaf25071ec63d8a32f96742582d41d0587a6fa9e745bd8d21ec8f0f76f",
+      "result_identity": null,
+      "evidence_ref": "artifacts/evidence/CHG-002/RUN-CHG-002-M4-01/IMP-M4-BACKEND-01.json",
+      "last_error": "Preflight revision drift: HEAD đổi từ approved base cbe20ddd47f24bec700c56e6f817d4776c25a629 sang 0e901d4167af93964926a1652b82068a1d4cc84e sau dispatch. Agent bị ngắt trước mutation M4; cần H1/rebaseline mới."
+    }
+  ],
+  "external_actions": []
+}

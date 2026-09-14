@@ -1,0 +1,52 @@
+schema: implementation-preflight/v1
+run_id: RUN-CHG-002-M4-02
+captured_at: "2026-09-14T04:52:30.6807307Z"
+repository_revision: 0e901d4167af93964926a1652b82068a1d4cc84e
+branch_or_worktree: develop
+starting_content_identity: sha256:15e626f538c8c702b9e7b2bb9304b3bf8cd8d7edff412f0397c69e61b8630595
+dirty_paths:
+  - path: tests/test_api.py
+    state: present
+    owner: implementation-run
+    sha256: sha256:f1eda8fe4683e80f2544a8b49100aa795e3ab2413c54a97d6c43f55b99fd4e59
+    size_bytes: 3687
+  - path: docs/plans/active/CHG-002-langgraph-sqlalchemy-mvp.md
+    state: present
+    owner: implementation-run
+    sha256: sha256:b1dda190dcb7bc0f525613c373d18d5104062961782f1a7a85fe16e96ec6899b
+    size_bytes: 16786
+prior_run_state:
+  ref: artifacts/evidence/CHG-002/RUN-CHG-002-M4-01/progress.json
+  owner: implementation-run
+  status: blocked
+  disposition: "Giữ nguyên để bảo toàn revision-drift history; không dùng làm identity cho run mới."
+unrelated_dirty_roots:
+  owner: user
+  paths:
+    - AGENTS.md
+    - docs/Agentic_Backend_Challenge_AI_Chemistry_Video_Request_Service.md
+    - scripts/validate-agent-harness.ps1
+    - .agents/skills/git-add-commit/
+    - .claude/
+    - .env.example
+    - artifacts/evidence/CHG-002/RUN-CHG-002-M2-01/
+    - artifacts/handoffs/CHG-001-discovery.yaml
+    - artifacts/handoffs/CHG-002-discovery.yaml
+    - artifacts/handoffs/CHG-002/H1-M2.yaml
+    - artifacts/temp/
+    - artifacts/videos/
+    - docs/biz.md
+    - pytest.ini
+    - requirements.txt
+    - "tests/ (ngoại trừ tests/test_api.py và tests/test_queue.py trong scope WP-06)"
+baseline_checks:
+  - command: "pytest tests/test_api.py -v --tb=short"
+    exit_code: 0
+    output_summary: "9 passed."
+  - command: "pytest tests/test_pipeline.py::TestGraphTopology tests/test_pipeline.py::TestScriptNode tests/test_pipeline.py::TestValidatorNode -v --tb=short"
+    exit_code: 0
+    output_summary: "20 passed; dependencies M2 ổn định trên base mới."
+observations:
+  - "HEAD giữ nguyên 0e901d4167af93964926a1652b82068a1d4cc84e trước và sau baseline checks."
+  - "Các path product WP-06 và tests/test_queue.py chưa tồn tại; tests/test_api.py giữ nguyên hash từ preflight cũ."
+  - "SPEC-02 dùng asyncio.Queue không giới hạn; M4 chỉ enforce concurrency render, không phát minh admission-capacity/overload policy."

@@ -1,0 +1,71 @@
+schema: work-package/v2
+run_id: RUN-CHG-002-M2-01
+task_id: IMP-M2-AI-01
+change_id: CHG-002
+mode: apply
+owner: ai-dev
+goal: "Hoàn thiện Milestone 2: typed StateGraph, Pydantic structured script output, validation và retry tối đa hai lần trên phần code đang làm dở."
+requirement_refs: [REQ-005, REQ-008, REQ-010]
+acceptance_refs: [AC-007, AC-010, M2-EC-GRAPH, M2-EC-STRUCTURED, M2-EC-RETRY]
+decision_refs: [DEC-001, DEC-005, DEC-006]
+authority_refs:
+  - docs/plans/PHASED-IMPLEMENTATION-PLAN.md
+  - docs/plans/active/CHG-002-langgraph-sqlalchemy-mvp.md
+  - docs/specs/SPEC-03-llm-structured-script.md
+  - artifacts/handoffs/CHG-002-discovery.yaml
+context_refs:
+  - artifacts/handoffs/CHG-002/H1-M2.yaml
+  - artifacts/evidence/CHG-002/RUN-CHG-002-M2-01/preflight.yaml
+  - app/llm_factory.py
+  - app/schemas/script.py
+  - app/pipeline/state.py
+  - app/pipeline/graph.py
+  - app/pipeline/nodes/script_node.py
+  - app/pipeline/nodes/validator_node.py
+  - tests/conftest.py
+  - tests/test_pipeline.py
+required_skills: [sk-ai-engineering, sk-test-engineering]
+depends_on: []
+allowed_paths:
+  - app/llm_factory.py
+  - app/schemas/script.py
+  - app/pipeline/state.py
+  - app/pipeline/graph.py
+  - app/pipeline/nodes/script_node.py
+  - app/pipeline/nodes/validator_node.py
+  - tests/conftest.py
+  - tests/test_pipeline.py
+  - artifacts/evidence/CHG-002/RUN-CHG-002-M2-01/IMP-M2-AI-01.json
+forbidden_paths:
+  - app/pipeline/assembler.py
+  - app/pipeline/nodes/audio_node.py
+  - app/pipeline/nodes/slides_node.py
+  - app/pipeline/nodes/assembler_node.py
+  - requirements.txt
+  - docs/
+consumes_interfaces:
+  - VideoConfig
+  - BaseChatModel.with_structured_output
+  - "WP-05 node callables đã có; chỉ wiring từ graph.py được phép thay đổi"
+produces_interfaces:
+  - VideoGenerationState
+  - VideoScript
+  - ScriptChunk
+  - script_node
+  - validate_script_node
+  - script_router
+  - build_script_graph
+  - build_video_graph
+test_mode: contract
+required_checks:
+  - "pytest tests/test_pipeline.py::TestGraphTopology -v"
+  - "pytest tests/test_pipeline.py::TestScriptNode tests/test_pipeline.py::TestValidatorNode -v"
+known_baseline_failures: []
+h2:
+  required_for: []
+stop_conditions:
+  - "Bất kỳ edit nào cần chạm WP-05 node/assembler hoặc dependency manifest."
+  - "Bất kỳ real provider call, credential access hoặc external side effect."
+  - "Path được phép sửa lại thay đổi bởi writer khác sau dispatch."
+retry_limit: 2
+evidence_ref: artifacts/evidence/CHG-002/RUN-CHG-002-M2-01/IMP-M2-AI-01.json

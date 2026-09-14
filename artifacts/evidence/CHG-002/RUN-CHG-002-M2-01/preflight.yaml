@@ -1,0 +1,80 @@
+schema: implementation-preflight/v1
+run_id: RUN-CHG-002-M2-01
+captured_at: "2026-09-13T16:20:29.1180914Z"
+repository_revision: cbe20ddd47f24bec700c56e6f817d4776c25a629
+branch_or_worktree: develop
+starting_content_identity: sha256:382c6e6d0b1e1c7d3453e155bb3606b079a9929b756a86d3f3c477f346b473c9
+dirty_paths:
+  - path: app/llm_factory.py
+    state: present
+    owner: implementation-run
+    sha256: sha256:bd8d79df07bc70c5b742e8aa812588d8f43dc12affe8d26f120d87e9434573d3
+    size_bytes: 1106
+  - path: app/pipeline/graph.py
+    state: present
+    owner: implementation-run
+    sha256: sha256:c54bb88c200e460266f55545073b856c5c3e38c639ab6316784e5e09bb77dde2
+    size_bytes: 3801
+  - path: app/pipeline/nodes/script_node.py
+    state: present
+    owner: implementation-run
+    sha256: sha256:40a179b72c5f629e1ca9c1abdd1f672385ebff1124a5e38e2f8294df4c42f264
+    size_bytes: 2260
+  - path: app/pipeline/nodes/validator_node.py
+    state: present
+    owner: implementation-run
+    sha256: sha256:7b15295cacd3bd2997c85ab2bbc703df520bd0ec4f69b60e027f0e75e392a5b7
+    size_bytes: 1582
+  - path: app/pipeline/state.py
+    state: present
+    owner: implementation-run
+    sha256: sha256:bb84d55868064440fc100e3a4342c9a9dbec443ba0b00e092b7bd744a70877d8
+    size_bytes: 525
+  - path: app/schemas/script.py
+    state: present
+    owner: implementation-run
+    sha256: sha256:1e0da4935cce0f657f5e1e7633d5166774f2871debd175c95f57b873a4770d78
+    size_bytes: 903
+  - path: tests/conftest.py
+    state: present
+    owner: implementation-run
+    sha256: sha256:3b00704d6e76a4c0ff0953fac38554eaa0966beb73d35279c5e97ee2a384b459
+    size_bytes: 2406
+  - path: tests/test_pipeline.py
+    state: present
+    owner: implementation-run
+    sha256: sha256:2834c8ef18b61d9cb27a85e5e63c0bc09a758dd6da04853fb87db49e2f903f7f
+    size_bytes: 12714
+  - path: docs/plans/active/CHG-002-langgraph-sqlalchemy-mvp.md
+    state: present
+    owner: implementation-run
+    sha256: sha256:b1dda190dcb7bc0f525613c373d18d5104062961782f1a7a85fe16e96ec6899b
+    size_bytes: 16786
+unrelated_dirty_roots:
+  owner: user
+  paths:
+    - AGENTS.md
+    - docs/Agentic_Backend_Challenge_AI_Chemistry_Video_Request_Service.md
+    - scripts/validate-agent-harness.ps1
+    - .agents/skills/git-add-commit/
+    - .claude/
+    - .env.example
+    - "app/ (ngoại trừ các path implementation-run đã liệt kê)"
+    - artifacts/temp/
+    - artifacts/videos/
+    - artifacts/handoffs/CHG-001-discovery.yaml
+    - artifacts/handoffs/CHG-002-discovery.yaml
+    - docs/biz.md
+    - pytest.ini
+    - requirements.txt
+    - "tests/ (ngoại trừ các path implementation-run đã liệt kê)"
+baseline_checks:
+  - command: "$env:PYTHONDONTWRITEBYTECODE='1'; pytest tests/test_pipeline.py::TestGraphTopology -v"
+    exit_code: 0
+    output_summary: "4 passed; PytestCacheWarning vì .pytest_cache không ghi được."
+  - command: "$env:PYTHONDONTWRITEBYTECODE='1'; pytest tests/test_pipeline.py::TestScriptNode tests/test_pipeline.py::TestValidatorNode -v"
+    exit_code: 0
+    output_summary: "9 passed; PytestCacheWarning vì .pytest_cache không ghi được."
+observations:
+  - "Một writer ngoài run đã sửa graph.py/state.py/tests và WP-05 trong preflight; các path Milestone 2 ổn định 20 giây trước khi tiếp quản."
+  - "Global Python packages từng không tương thích rồi được writer ngoài run thay đổi; phiên bản runtime hiện không trùng requirements.txt."

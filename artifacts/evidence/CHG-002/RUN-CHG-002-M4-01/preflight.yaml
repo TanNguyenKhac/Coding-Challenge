@@ -1,0 +1,52 @@
+schema: implementation-preflight/v1
+run_id: RUN-CHG-002-M4-01
+captured_at: "2026-09-13T16:38:59.1526966Z"
+repository_revision: cbe20ddd47f24bec700c56e6f817d4776c25a629
+branch_or_worktree: develop
+starting_content_identity: sha256:f607c64eccdbd18612fab616630d0891ef15b8bdb9de6f4afe2c0ce8365522dd
+dirty_paths:
+  - path: tests/test_api.py
+    state: present
+    owner: implementation-run
+    sha256: sha256:f1eda8fe4683e80f2544a8b49100aa795e3ab2413c54a97d6c43f55b99fd4e59
+    size_bytes: 3687
+  - path: docs/plans/active/CHG-002-langgraph-sqlalchemy-mvp.md
+    state: present
+    owner: implementation-run
+    sha256: sha256:b1dda190dcb7bc0f525613c373d18d5104062961782f1a7a85fe16e96ec6899b
+    size_bytes: 16786
+unrelated_dirty_roots:
+  owner: user
+  paths:
+    - AGENTS.md
+    - docs/Agentic_Backend_Challenge_AI_Chemistry_Video_Request_Service.md
+    - scripts/validate-agent-harness.ps1
+    - .agents/skills/git-add-commit/
+    - .claude/
+    - .env.example
+    - "app/ (ngoại trừ các path WP-06 được phê duyệt)"
+    - artifacts/evidence/CHG-002/RUN-CHG-002-M2-01/
+    - artifacts/handoffs/CHG-001-discovery.yaml
+    - artifacts/handoffs/CHG-002-discovery.yaml
+    - artifacts/handoffs/CHG-002/H1-M2.yaml
+    - artifacts/temp/
+    - artifacts/videos/
+    - docs/biz.md
+    - pytest.ini
+    - requirements.txt
+    - "tests/ (ngoại trừ tests/test_api.py và tests/test_queue.py trong scope WP-06)"
+baseline_checks:
+  - command: "pytest tests/test_api.py -v --tb=short"
+    exit_code: 0
+    output_summary: "9 passed; PytestCacheWarning vì .pytest_cache không ghi được."
+  - command: "pytest tests/test_pipeline.py::TestGraphTopology -v --tb=short --basetemp D:\\chemistry-video-engine\\artifacts\\temp\\RUN-CHG-002-M4-01-baseline"
+    exit_code: 0
+    output_summary: "6 passed; dependency M2 graph topology ổn định."
+  - command: "pytest tests/test_pipeline.py::TestScriptNode tests/test_pipeline.py::TestValidatorNode -v --tb=short --basetemp D:\\chemistry-video-engine\\artifacts\\temp\\RUN-CHG-002-M4-01-baseline"
+    exit_code: 0
+    output_summary: "13 passed; dependency M2 structured output và retry ổn định."
+observations:
+  - "Run M2 cũ còn ledger in-progress và thiếu agent-task-result/v2 sau lượt bị hủy; không redispatch hoặc nhận claim hoàn tất từ ledger đó."
+  - "Các path M2 từng bị writer cũ cập nhật đồng thời, sau đó ổn định và vượt qua hai focused checks trước preflight M4."
+  - "Python runtime cài đặt hiện tại khác pin trong requirements.txt; baseline tests liên quan vẫn pass."
+  - "SPEC-02 dùng asyncio.Queue không giới hạn; scope M4 chỉ enforce concurrency render, không phát minh admission-capacity/overload policy."

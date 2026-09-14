@@ -1,3 +1,6 @@
+import os
+import uuid
+
 import pytest
 import pytest_asyncio
 from app.repositories.job_repository import JobRepository
@@ -237,3 +240,41 @@ class TestJobsAPI:
 
         assert response.status_code == 404
         assert response.json() == {"detail": "Job or artifact file not found"}
+
+    @pytest.mark.asyncio
+    async def test_create_job_custom_config_fields(self, api_client):
+        """TC-01-02: Custom config fields are persisted and returned."""
+        client, _ = api_client
+        resp = await client.post(
+            "/api/v1/jobs",
+            json={
+                "concept": "Why do atoms form covalent bonds?",
+                "config": {
+                    "target_duration_sec": 45,
+                    "target_audience": "university",
+                },
+            },
+        )
+        assert resp.status_code == 201
+        data = resp.json()
+        assert data["config"]["target_duration_sec"] == 45
+        assert data["config"]["target_audience"] == "university"
+
+    @pytest.mark.asyncio
+    async def test_startup_reset_stuck_jobs(self, db_session_factory):
+        """TC-01-09: reset_stuck_jobs converts generating → failed(server_restart)."""
+        async with db_session_factory() as session:
+            repo = JobRepository(session)
+            job = await repo.create("Stuck job for reset test")
+            await repo.update_status(job.job_id, JobStatus.generating)
+            job_id = job.job_id
+
+        async with db_session_factory() as session:
+            repo = JobRepository(session)
+            await repo.reset_stuck_jobs()
+
+        async with db_session_factory() as session:
+            repo = JobRepository(session)
+            reset_job = await repo.get(job_id)
+            assert reset_job.status == JobStatus.failed
+            assert reset_job.error_reason == "server_restart"

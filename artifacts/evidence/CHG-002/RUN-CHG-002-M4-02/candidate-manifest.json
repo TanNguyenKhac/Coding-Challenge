@@ -1,0 +1,81 @@
+{
+  "schema": "candidate-manifest/v1",
+  "base_revision": "0e901d4167af93964926a1652b82068a1d4cc84e",
+  "created_at": "2026-09-14T05:09:45.4449023Z",
+  "preflight_snapshot_ref": "artifacts/evidence/CHG-002/RUN-CHG-002-M4-02/preflight.yaml",
+  "preflight_snapshot_sha256": "sha256:d4e5e9501918f7c54afa6711baffd1b4faffb44a848ff4922131890a13075871",
+  "starting_content_identity": "sha256:15e626f538c8c702b9e7b2bb9304b3bf8cd8d7edff412f0397c69e61b8630595",
+  "candidate_content_identity": "sha256:c6286334cc4f1a2b13c7d7d91683cc3261bc9bb6c3815fe5774c52c0218e987f",
+  "identity_scope": "Sorted implementation-owned product, test and active-plan paths; canonical lines path|present|lowercase_sha256|size joined with LF and no trailing newline.",
+  "files": [
+    {
+      "path": "app/api/v1/jobs.py",
+      "state": "present",
+      "sha256": "sha256:83ae6eec51be2dae2bd76f785a08e2768c53234a1b05469d202440046a30cfa7",
+      "size_bytes": 2959
+    },
+    {
+      "path": "app/main.py",
+      "state": "present",
+      "sha256": "sha256:8f634225105fe5bc39b7a41c58ceb41b351838075ed83a7e52ef870adb94384a",
+      "size_bytes": 1079
+    },
+    {
+      "path": "app/services/job_service.py",
+      "state": "present",
+      "sha256": "sha256:af3f53e14feff67f03818a9bc8f1e6ab5400db41f8603be44e58d5dfcb8c7f6e",
+      "size_bytes": 2238
+    },
+    {
+      "path": "app/services/queue.py",
+      "state": "present",
+      "sha256": "sha256:b80856b260a7edd43ba712355684829beaa07277dc04bb788d96a00277a1462d",
+      "size_bytes": 2553
+    },
+    {
+      "path": "docs/plans/active/CHG-002-langgraph-sqlalchemy-mvp.md",
+      "state": "present",
+      "sha256": "sha256:1bd996e3ad2e9fc7925548c80f4b6bd0b6d9bdf88c57249f64d0772fa0de7327",
+      "size_bytes": 16827
+    },
+    {
+      "path": "tests/test_api.py",
+      "state": "present",
+      "sha256": "sha256:edd7cee3a3a079640ca930ac9b0b67c126bd5ece3d0a9f7e26b8cb36342c5a65",
+      "size_bytes": 8571
+    },
+    {
+      "path": "tests/test_queue.py",
+      "state": "present",
+      "sha256": "sha256:6794fc3b279c4736f29cc957c1d80783d3394dfa7a5fb7ecc8405bafbefcf443",
+      "size_bytes": 7745
+    }
+  ],
+  "evidence": [
+    {
+      "path": "artifacts/handoffs/CHG-002/H1-M4-r2.yaml",
+      "sha256": "sha256:93727985a7e5fd1ce17e18c79ef7df65c0a7d88e969d81a23acad42e0538ccec",
+      "size_bytes": 1333
+    },
+    {
+      "path": "artifacts/evidence/CHG-002/RUN-CHG-002-M4-02/preflight.yaml",
+      "sha256": "sha256:d4e5e9501918f7c54afa6711baffd1b4faffb44a848ff4922131890a13075871",
+      "size_bytes": 2355
+    },
+    {
+      "path": "artifacts/evidence/CHG-002/RUN-CHG-002-M4-02/work-package-M4-BACKEND.yaml",
+      "sha256": "sha256:53584eea09894ce77497070e0a68235205eebc0330de3a3615db1c6d846aa18a",
+      "size_bytes": 3865
+    },
+    {
+      "path": "artifacts/evidence/CHG-002/RUN-CHG-002-M4-02/IMP-M4-BACKEND-01.json",
+      "sha256": "sha256:a11a7aa803fec8c5775f063222f64241f9483512b9923545894550168629daa7",
+      "size_bytes": 3349
+    },
+    {
+      "path": "artifacts/evidence/CHG-002/RUN-CHG-002-M4-02/final-check.json",
+      "sha256": "sha256:f082128d7deb94ccce8a44e36ec0b44cdc0f536f06b3cc4d6a09dd3b914b30f1",
+      "size_bytes": 1709
+    }
+  ]
+}

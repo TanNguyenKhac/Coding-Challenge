@@ -1,0 +1,28 @@
+schema: approval-record/v1
+approval_id: HITL-CHG-002-H1-M4-20260913
+gate: H1
+change_id: CHG-002
+handoff_ref: artifacts/handoffs/CHG-002-discovery.yaml
+handoff_sha256: sha256:5107f5075fffaed917d31e42e8c0067d8621caf3c01b50891d1392866df73012
+base_revision: cbe20ddd47f24bec700c56e6f817d4776c25a629
+decision: approve-with-conditions
+approved_scope:
+  - "Milestone 4 / WP-06 theo docs/plans/PHASED-IMPLEMENTATION-PLAN.md"
+  - app/services/queue.py
+  - app/services/job_service.py
+  - app/api/v1/jobs.py
+  - app/main.py
+  - tests/test_api.py
+  - tests/test_queue.py
+  - docs/plans/active/CHG-002-langgraph-sqlalchemy-mvp.md
+  - artifacts/evidence/CHG-002/RUN-CHG-002-M4-01/
+  - artifacts/handoffs/CHG-002/
+approved_option: OPT-A
+conditions:
+  - "Giữ nguyên thay đổi ngoài phạm vi WP-06; chỉ mở rộng tests/test_api.py cho hợp đồng endpoint của Milestone 4."
+  - "Dùng AsyncioWorkerQueue in-process theo SPEC-02; không đặt thêm queue capacity hoặc overload API policy khi authority chưa định nghĩa."
+  - "Không gọi LLM/TTS provider thật, không dùng credential và không thực hiện external action."
+external_effect_policy: deny
+approver: user
+decided_at: "2026-09-13T16:39:30Z"
+expires_at: null

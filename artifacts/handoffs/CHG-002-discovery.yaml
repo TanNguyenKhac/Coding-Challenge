@@ -1,0 +1,601 @@
+schema: discovery-handoff/v2
+change_id: CHG-002
+mode: architectural
+status: ready-for-approval
+
+request:
+  sources:
+    - docs/Agentic_Backend_Challenge_AI_Chemistry_Video_Request_Service.md
+    - docs/product/overview.md
+    - artifacts/handoffs/CHG-001-discovery.yaml
+    - "user-decision: dùng LangChain/LangGraph cho orchestration, SQLAlchemy cho persistence, JobQueue abstraction (AsyncioWorkerQueue) cho queue/worker, Pydantic Structured Output cho LLM"
+  requested_output: buildable-change
+  timebox_minutes: 120
+
+repository:
+  mode: greenfield
+  root: D:/chemistry-video-engine
+  base_revision: "2cf89b0e20c3d8bfd2e7ed884770fb24b4643c72"
+  dirty: true  # CHG-001 plan/handoff untracked, AGENTS.md modified
+
+# ---------------------------------------------------------------------------
+# Ghi chú kiến trúc
+# CHG-002 thay thế toàn bộ thiết kế kỹ thuật của CHG-001:
+# - CHG-001 dùng custom ScriptProvider/VideoProvider ABC đơn giản
+# - CHG-002 nâng cấp orchestration lên LangGraph StateGraph,
+#   persistence lên SQLAlchemy, Queue qua JobQueue abstraction với In-Process
+#   AsyncioWorkerQueue (sẵn sàng cho Celery/Redis), LLM dùng 100% Structured Output
+# Các yêu cầu sản phẩm (REQ/AC) được kế thừa từ CHG-001; bổ sung VideoConfig & Chunking.
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# Evidence ledger
+# ---------------------------------------------------------------------------
+evidence_ledger:
+  - id: EVD-001
+    classification: authoritative
+    statement: "FastAPI backend bắt buộc; không có frontend."
+    source: docs/Agentic_Backend_Challenge_AI_Chemistry_Video_Request_Service.md §Product Requirements
+
+  - id: EVD-002
+    classification: authoritative
+    statement: "Async video-generation flow với job status hiển thị rõ ràng."
+    source: docs/Agentic_Backend_Challenge_AI_Chemistry_Video_Request_Service.md §Product Requirements
+
+  - id: EVD-003
+    classification: authoritative
+    statement: "Artifact phải có visual content và audio narration."
+    source: docs/Agentic_Backend_Challenge_AI_Chemistry_Video_Request_Service.md §Product Requirements
+
+  - id: EVD-004
+    classification: authoritative
+    statement: "Ba query bắt buộc: pH scale, covalent bonds, ionic vs covalent bonding."
+    source: docs/Agentic_Backend_Challenge_AI_Chemistry_Video_Request_Service.md §Required Chemistry Queries
+
+  - id: EVD-005
+    classification: authoritative
+    statement: "In-memory persistence chấp nhận được nếu boundary rõ ràng; local file store chấp nhận được."
+    source: docs/product/overview.md §Persistence and Simulation Policy
+
+  - id: EVD-006
+    classification: authoritative
+    statement: "Pipeline phải validate output trước khi đến user, retry, fallback, guardrail, consistent across repeated runs."
+    source: docs/product/overview.md §Reliability Requirements
+
+  - id: EVD-007
+    classification: authoritative
+    statement: "Cost-efficiency và visual quality đều là success metrics."
+    source: docs/product/overview.md §Cost Constraint
+
+  - id: EVD-008
+    classification: authoritative
+    statement: "Design để STEM topics khác có thể thêm được sau."
+    source: docs/product/overview.md §Required Queries
+
+  - id: EVD-009
+    classification: authoritative
+    statement: "Timebox 90–120 phút; completion không phải mục tiêu duy nhất."
+    source: docs/Agentic_Backend_Challenge_AI_Chemistry_Video_Request_Service.md §Before You Start
+
+  - id: EVD-010
+    classification: derived
+    statement: "Greenfield — không có application code nào tồn tại."
+    source: git status tại base revision 2cf89b0
+
+  - id: EVD-011
+    classification: decision-required
+    statement: "User quyết định dùng LangChain/LangGraph cho orchestration pipeline."
+    source: user-decision trong request
+
+  - id: EVD-012
+    classification: decision-required
+    statement: "User quyết định dùng SQLAlchemy cho persistence (thay vì in-memory dict thuần)."
+    source: user-decision trong request
+
+  - id: EVD-013
+    classification: decision-required
+    statement: "User quyết định dùng JobQueue abstraction với In-Process AsyncioWorkerQueue (worker pool concurrency control) cho MVP, hỗ trợ mở rộng sang Redis/Celery."
+    source: user-decision trong architectural refinement
+
+  - id: EVD-014
+    classification: derived
+    statement: "LangGraph StateGraph phù hợp cho pipeline có nhiều node có điều kiện (validate, retry, branch). LangChain BaseChatModel interface cho phép swap provider (Codex ↔ Anthropic ↔ mock) mà không sửa node."
+    source: LangGraph documentation pattern
+
+  - id: EVD-015
+    classification: derived
+    statement: "SQLAlchemy với SQLite (dev) đáp ứng EVD-005: boundary rõ ràng, không cần server riêng, dễ upgrade lên PostgreSQL."
+    source: derived từ EVD-005 và EVD-012
+
+  - id: EVD-016
+    classification: decision-required
+    statement: "Codex làm primary LLM provider (OpenAI-compatible endpoint, không cần internet trong dev); Anthropic làm fallback. System prompt cho script_node phải được define rõ trong code."
+    source: user-decision bổ sung sau CHG-002 initial design
+
+  - id: EVD-017
+    classification: decision-required
+    statement: "Thu thập VideoConfig (target_duration, resolution, aspect_ratio, audience, language) cùng concept. Kịch bản chia thành chunks độc lập để xử lý song song trên worker."
+    source: user-decision trong refinement
+
+  - id: EVD-018
+    classification: decision-required
+    statement: "TUYỆT ĐỐI KHÔNG dùng regex parse output LLM; bắt buộc dùng LangChain Structured Output (with_structured_output + Pydantic schema) đảm bảo type-safety."
+    source: user-decision trong refinement
+
+  - id: EVD-019
+    classification: derived
+    statement: "DB session trong background worker phải được quản lý độc lập qua async context manager (async with async_session_factory()), không dùng request session."
+    source: derived từ kiến trúc FastAPI BackgroundTasks / Worker Lifecycle
+
+# ---------------------------------------------------------------------------
+# Requirements
+# ---------------------------------------------------------------------------
+requirements:
+  - id: REQ-001
+    statement: "Expose POST /api/v1/jobs nhận concept string và optional VideoConfig, trả về job_id + status pending."
+    source_evidence: [EVD-001, EVD-002, EVD-017]
+    priority: must
+
+  - id: REQ-002
+    statement: "Expose GET /api/v1/jobs trả về danh sách tất cả jobs với status và metadata."
+    source_evidence: [EVD-002]
+    priority: must
+
+  - id: REQ-003
+    statement: "Expose GET /api/v1/jobs/{job_id} trả về full job detail kèm artifact_url khi complete."
+    source_evidence: [EVD-002]
+    priority: must
+
+  - id: REQ-004
+    statement: "Expose GET /api/v1/jobs/{job_id}/artifact phục vụ file MP4 hoặc redirect đến static URL."
+    source_evidence: [EVD-002, EVD-003]
+    priority: must
+
+  - id: REQ-005
+    statement: "Job lifecycle được điều phối bởi LangGraph StateGraph với các node: generate_script → validate_script → generate_audio → generate_slides → assemble_video. Các chunks được xử lý song song (fan-out/fan-in) trên audio và slide nodes."
+    source_evidence: [EVD-011, EVD-002, EVD-017]
+    priority: must
+
+  - id: REQ-006
+    statement: "Job state được lưu bằng SQLAlchemy; engine default là SQLite (file-based). Job table chứa: job_id, concept, config (JSON), status, error_reason, artifact_path, retry_count, created_at, updated_at."
+    source_evidence: [EVD-012, EVD-015, EVD-017]
+    priority: must
+
+  - id: REQ-007
+    statement: "Hệ thống sử dụng JobQueue abstraction với AsyncioWorkerQueue (in-process worker pool, concurrency limiter) để điều phối render video, không làm nghẽn API request."
+    source_evidence: [EVD-013, EVD-019]
+    priority: must
+
+  - id: REQ-008
+    statement: "Node generate_script sử dụng 100% Structured Output (with_structured_output + Pydantic schema). Node validate_script kiểm tra tính toàn vẹn nghiệp vụ. Nếu fail: retry tối đa 2 lần; sau max retry: job status = failed với error_reason rõ ràng."
+    source_evidence: [EVD-006, EVD-018]
+    priority: must
+
+  - id: REQ-009
+    statement: "Artifact là file MP4 hợp lệ với audio narration và visual slides đồng bộ thời lượng per chunk; lưu tại artifacts/{job_id}.mp4."
+    source_evidence: [EVD-003, EVD-017]
+    priority: must
+
+  - id: REQ-010
+    statement: "LLM provider được inject qua interface (LangChain BaseChatModel); test dùng mock (FakeListChatModel), production dùng Codex (OpenAI-compatible) hoặc ChatAnthropic (claude-haiku-4-5-20251001)."
+    source_evidence: [EVD-008, EVD-011, EVD-016]
+    priority: must
+
+  - id: REQ-011
+    statement: "VideoAssembler là interface; production dùng FFmpegAssembler (Pillow + gTTS/pyttsx3 + ffmpeg), test dùng MockAssembler."
+    source_evidence: [EVD-007, EVD-006]
+    priority: must
+
+  - id: REQ-012
+    statement: "README.md bao gồm: prerequisites, install, run, API examples (curl), test instructions."
+    source_evidence: [EVD-009]
+    priority: must
+
+  - id: REQ-013
+    statement: "ARCHITECTURE.md mô tả: LangGraph graph flow, chunk worker fan-out, JobQueue abstraction, SQLAlchemy boundary, provider interface, cost table."
+    source_evidence: [EVD-007, EVD-013, EVD-017]
+    priority: must
+
+# ---------------------------------------------------------------------------
+# Acceptance criteria
+# ---------------------------------------------------------------------------
+acceptance_criteria:
+  - id: AC-001
+    requirement_ids: [REQ-001]
+    observable_result: "POST /api/v1/jobs với body {\"concept\": \"How does the pH scale work?\", \"config\": {\"target_duration_sec\": 60}} trả về HTTP 201 với {job_id, status: \"pending\"}."
+
+  - id: AC-002
+    requirement_ids: [REQ-002]
+    observable_result: "GET /api/v1/jobs trả về array JSON chứa job vừa submit với status visible."
+
+  - id: AC-003
+    requirement_ids: [REQ-003]
+    observable_result: "GET /api/v1/jobs/{job_id} sau khi complete trả về {job_id, concept, config, status: \"complete\", artifact_url}."
+
+  - id: AC-004
+    requirement_ids: [REQ-004]
+    observable_result: "GET /api/v1/jobs/{job_id}/artifact trả về file MP4 với Content-Type video/mp4."
+
+  - id: AC-005
+    requirement_ids: [REQ-005, REQ-007]
+    observable_result: "POST /jobs trả về 201 ngay lập tức; job được worker xử lý ngầm; GET /jobs/{id} trong quá trình generating trả về status: \"generating\"."
+
+  - id: AC-006
+    requirement_ids: [REQ-006]
+    observable_result: "File SQLite (chemistry.db) tồn tại sau khi server start; row job được tạo trong DB sau POST /jobs với session độc lập."
+
+  - id: AC-007
+    requirement_ids: [REQ-008]
+    observable_result: "Script sinh bằng structured output; khi validation fail, job retry tự động; sau max retry job.status = \"failed\" với error_reason non-empty."
+
+  - id: AC-008
+    requirement_ids: [REQ-009]
+    observable_result: "Artifact MP4 phát được trên video player thông thường; audio narration khớp thời lượng slide per chunk."
+
+  - id: AC-009
+    requirement_ids: [REQ-005]
+    observable_result: "Ba query bắt buộc đều complete với artifact hợp lệ trong 2 lần chạy liên tiếp độc lập."
+
+  - id: AC-010
+    requirement_ids: [REQ-010, REQ-011]
+    observable_result: "Tất cả unit test pass không cần ANTHROPIC_API_KEY và không cần ffmpeg (dùng mock providers)."
+
+  - id: AC-011
+    requirement_ids: [REQ-012]
+    observable_result: "README.md hiện diện và bao gồm đủ các section yêu cầu."
+
+  - id: AC-012
+    requirement_ids: [REQ-013]
+    observable_result: "ARCHITECTURE.md chứa LangGraph diagram, chunk worker topology, JobQueue architecture, cost table với estimated cost/video."
+
+# ---------------------------------------------------------------------------
+# Scope
+# ---------------------------------------------------------------------------
+scope:
+  in:
+    - FastAPI app với 4 endpoints (versioned: /api/v1/)
+    - VideoConfig schema & request customization với sensible chemistry defaults
+    - SQLAlchemy models + migration (Alembic create_all cho MVP)
+    - JobRepository (single writer cho DB state, async context manager session per worker)
+    - JobQueue abstraction + AsyncioWorkerQueue (in-process worker pool, concurrency control)
+    - LangGraph StateGraph pipeline: 5 nodes (generate_script, validate_script, generate_audio, generate_slides, assemble_video)
+    - ScriptChunk & VideoScript Pydantic models cho 100% Structured Output (zero regex)
+    - Parallel chunk processing (fan-out/fan-in) trong audio_node và slides_node
+    - LLM Factory (Codex primary, Anthropic fallback, Mock test)
+    - VideoAssembler interface + FFmpegAssembler (Pillow + gTTS/pyttsx3 + ffmpeg) + MockAssembler (test)
+    - Static file mount cho artifacts/
+    - Unit tests: job lifecycle, LangGraph node logic, validation/retry, queue concurrency
+    - Integration test: smoke test 3 required queries
+    - README.md và ARCHITECTURE.md
+    - 3 pre-generated sample videos committed vào artifacts/samples/
+  out:
+    - Frontend
+    - External Redis/Celery infrastructure (đã có interface JobQueue sẵn sàng)
+    - Alembic migration files (dùng create_all cho MVP)
+    - Authentication/authorization
+    - PostgreSQL (SQLite đủ cho MVP; boundary rõ ràng để upgrade)
+    - Streaming/websocket real-time progress
+    - Support STEM topics ngoài chemistry (extensibility qua prompt/config — in scope; thực tế support — out)
+    - Docker/containerization
+
+# ---------------------------------------------------------------------------
+# Impact map
+# ---------------------------------------------------------------------------
+impact:
+  interfaces:
+    - "REST API: POST /api/v1/jobs, GET /api/v1/jobs, GET /api/v1/jobs/{job_id}, GET /api/v1/jobs/{job_id}/artifact"
+    - "Queue interface: JobQueue (enqueue), AsyncioWorkerQueue"
+    - "Static file mount: /artifacts/{filename} via FastAPI StaticFiles"
+  data_and_state:
+    - "SQLAlchemy Job model: job_id (UUID), concept, config (JSON), status (Enum), error_reason, artifact_path, retry_count, created_at, updated_at"
+    - "DB file: chemistry.db (SQLite, local filesystem)"
+    - "Artifact files: artifacts/{job_id}.mp4"
+    - "LangGraph state: VideoGenerationState TypedDict (in-memory, per-run)"
+  modules_or_paths:
+    - app/__init__.py
+    - app/main.py
+    - app/config.py
+    - app/llm_factory.py
+    - app/api/__init__.py
+    - app/api/v1/__init__.py
+    - app/api/v1/jobs.py
+    - app/models/job.py
+    - app/schemas/job.py
+    - app/repositories/job_repository.py
+    - app/services/queue.py
+    - app/services/job_service.py
+    - app/pipeline/__init__.py
+    - app/pipeline/state.py
+    - app/pipeline/graph.py
+    - app/pipeline/assembler.py
+    - app/pipeline/nodes/__init__.py
+    - app/pipeline/nodes/script_node.py
+    - app/pipeline/nodes/validator_node.py
+    - app/pipeline/nodes/audio_node.py
+    - app/pipeline/nodes/slides_node.py
+    - app/pipeline/nodes/assembler_node.py
+    - tests/test_api.py
+    - tests/test_pipeline.py
+    - tests/conftest.py
+    - scripts/smoke_test.py
+    - scripts/generate_samples.py
+    - README.md
+    - ARCHITECTURE.md
+  dependencies:
+    - "fastapi>=0.111, uvicorn[standard] — web framework"
+    - "sqlalchemy>=2.0 — ORM và session management"
+    - "aiosqlite — async SQLite driver cho SQLAlchemy async engine"
+    - "langchain-anthropic — ChatAnthropic wrapper"
+    - "langchain-openai — ChatOpenAI wrapper cho Codex endpoint"
+    - "langgraph>=0.2 — StateGraph orchestration"
+    - "langchain-core — BaseChatModel, Structured Output interface"
+    - "pillow — slide image rendering"
+    - "gtts — Google TTS (free, no key)"
+    - "pyttsx3 — offline TTS fallback"
+    - "ffmpeg-python — FFmpeg wrapper cho MP4 assembly"
+    - "pydantic>=2.0 — request/response validation và structured output"
+    - "pydantic-settings — env configuration"
+    - "pytest, pytest-asyncio, httpx — testing"
+  tests:
+    - "tests/test_api.py: 4 endpoints, 404 handling, status transitions, config validation"
+    - "tests/test_pipeline.py: mỗi LangGraph node, structured output parsing, retry logic, chunk parallel workers"
+
+# ---------------------------------------------------------------------------
+# LangGraph Pipeline & Queue Design
+# ---------------------------------------------------------------------------
+# VideoConfig (Pydantic):
+#   target_duration_sec: int = 60
+#   target_audience: str = "high_school"
+#   aspect_ratio: str = "16:9"
+#   resolution: tuple[int, int] = (1280, 720)
+#   language: str = "vi"
+#   voice_gender: str = "neutral"
+#
+# ScriptChunk (Pydantic):
+#   chunk_id: int
+#   heading: str
+#   narration: str
+#   visual_notes: str
+#   duration_hint_sec: int | None
+#
+# VideoScript (Pydantic - Structured Output):
+#   title: str
+#   summary: str
+#   chunks: list[ScriptChunk]
+#
+# VideoGenerationState (TypedDict):
+#   job_id: str
+#   concept: str
+#   config: VideoConfig
+#   script: VideoScript | None   # output của script_node via with_structured_output
+#   audio_paths: list[str]       # output của audio_node (parallel per chunk)
+#   slide_paths: list[str]       # output của slides_node (parallel per chunk)
+#   artifact_path: str | None    # output của assembler_node
+#   retry_count: int
+#   error_reason: str | None
+#   status: str
+#
+# Graph topology:
+#   START → generate_script → validate_script → [PASS] → generate_audio
+#                                             → [FAIL, retry<2] → generate_script
+#                                             → [FAIL, retry>=2] → mark_failed → END
+#   generate_audio (parallel chunks) → generate_slides (parallel chunks) → assemble_video → mark_complete → END
+#
+# Queue Architecture:
+#   POST /jobs → DB create(status=pending) → JobQueue.enqueue(job_id)
+#   AsyncioWorkerQueue (Lifespan background worker pool with semaphore concurrency control)
+#   Worker pop job_id → run_pipeline(job_id) với async_session_factory context manager
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# Options (required for architectural mode)
+# ---------------------------------------------------------------------------
+options:
+  - id: OPT-A
+    summary: "LangGraph StateGraph + SQLAlchemy async + JobQueue (AsyncioWorkerQueue) + Structured Output (RECOMMENDED)"
+    affected_boundaries: [Pipeline orchestration, Persistence, Queue/Workers, LLM Protocol]
+    benefits:
+      - LangGraph cho phép express retry/branch logic dạng graph — dễ đọc, dễ test từng node
+      - Pydantic Structured Output loại bỏ 100% lỗi parse JSON và regex không an toàn
+      - JobQueue interface phân tách rõ ràng API layer và Worker pool, kiểm soát concurrency tải render
+      - Chunk parallel processing tăng tốc độ render đáng kể
+      - SQLAlchemy async session độc lập trong worker tránh race conditions
+      - BaseChatModel interface cho phép swap provider (Codex ↔ Anthropic ↔ mock)
+    costs:
+      - Cần thêm module queue abstraction (~50 LOC)
+      - SQLAlchemy async cần quản lý session lifecycle đúng chuẩn
+    risks:
+      - RSK-001: Process restart khi job đang generating → job bị stuck ở "generating"
+        Mitigation: Khi startup, reset tất cả job có status "generating" về "failed" với error_reason "server_restart"
+    reversibility: high — graph topology, worker pool, LLM provider đều swap được độc lập
+    verification_impact: "Mỗi node và worker test được độc lập với mock state; không cần real API hay external broker"
+    estimated_cost_per_video: "<$0.01 (Claude Haiku / Codex + local assembly)"
+
+  - id: OPT-B
+    summary: "Custom orchestrator + in-memory dict + BackgroundTasks + Regex parsing"
+    affected_boundaries: [Pipeline orchestration, Persistence, LLM Protocol]
+    benefits:
+      - Đơn giản hơn về số lượng module
+    costs:
+      - Regex parse JSON rất dễ gãy (brittle)
+      - Không kiểm soát được tải render (concurrency)
+      - In-memory dict không query được sau restart
+    risks:
+      - Model format lạ dẫn tới sập pipeline
+    reversibility: medium
+    estimated_cost_per_video: "<$0.01"
+
+recommended_option: OPT-A
+recommendation_rationale: >
+  OPT-A đáp ứng toàn bộ chỉ đạo kỹ thuật: Structured Output type-safe (không regex),
+  Queue worker pool kiểm soát tải, Chunking song song, và SQLAlchemy độc lập trong worker.
+
+# ---------------------------------------------------------------------------
+# Proposed decisions
+# ---------------------------------------------------------------------------
+proposed_decisions:
+  - id: DEC-001
+    decision: "Dùng LangGraph StateGraph làm pipeline orchestrator với 5 nodes (generate_script, validate_script, generate_audio, generate_slides, assemble_video)."
+    rationale: "User decision (EVD-011). Biểu diễn retry branch và flow state rõ ràng."
+
+  - id: DEC-002
+    decision: "Dùng SQLAlchemy 2.0 async với aiosqlite + SQLite cho persistence."
+    rationale: "User decision (EVD-012). JobRepository là sole writer."
+
+  - id: DEC-003
+    decision: "Xây dựng JobQueue abstract interface với AsyncioWorkerQueue (worker pool có concurrency control) cho in-process execution, sẵn sàng scale sang Redis/Celery."
+    rationale: "EVD-013. Tách biệt Web API và Video Renderer, ngăn chặn quá tải CPU/RAM."
+
+  - id: DEC-004
+    decision: "Khi server startup, reset tất cả job có status 'generating' về 'failed' với error_reason 'server_restart'."
+    rationale: "Mitigate RSK-001: job stuck sau process restart."
+
+  - id: DEC-005
+    decision: "LLM provider inject qua LangChain BaseChatModel; chọn provider theo env vars qua llm_factory.build_llm(): Codex (ChatOpenAI + CODEX_API_BASE) là primary, ChatAnthropic (claude-haiku-4-5-20251001 + ANTHROPIC_API_KEY) là fallback; test dùng FakeListChatModel."
+    rationale: "EVD-016. Codex không tốn API cost trong dev; Anthropic làm fallback."
+
+  - id: DEC-006
+    decision: "Sử dụng LangChain with_structured_output(VideoScript) dựa trên Pydantic v2. Tuyệt đối KHÔNG dùng regex để parse markdown/JSON. Validator kiểm tra logic nghiệp vụ (len(chunks) >= 3, title/narration non-empty)."
+    rationale: "EVD-018. Đảm bảo 100% type-safety và format reliability."
+
+  - id: DEC-007
+    decision: "API versioned tại /api/v1/; JobCreate hỗ trợ concept và optional VideoConfig."
+    rationale: "EVD-008, EVD-017. Cho phép tùy biến thông số video hoặc dùng defaults."
+
+  - id: DEC-008
+    decision: "Kịch bản video được chia thành các Chunks (ScriptChunk); audio_node và slides_node xử lý song song các chunks (fan-out) trước khi gom lại (fan-in) cho assembler_node."
+    rationale: "EVD-017. Tối ưu thời gian render và phân phối tải worker."
+
+  - id: DEC-009
+    decision: "Background worker tự tạo DB session độc lập qua async with async_session_factory(), không nhận session từ HTTP request."
+    rationale: "EVD-019. Tránh race condition và lỗi session closed sau khi HTTP response hoàn tất."
+
+# ---------------------------------------------------------------------------
+# Plan reference
+# ---------------------------------------------------------------------------
+plan:
+  required: true
+  ref: docs/plans/active/CHG-002-langgraph-sqlalchemy-mvp.md
+  work_packages:
+    - id: WP-01
+      label: "Project scaffold: cấu trúc thư mục, config, SQLAlchemy models (kèm config), Pydantic schemas (VideoConfig, VideoScript, ScriptChunk), LLM Factory"
+      order: 1
+      dependencies: []
+    - id: WP-02
+      label: "JobRepository + database session context manager + startup reset logic"
+      order: 2
+      dependencies: [WP-01]
+    - id: WP-03
+      label: "LangGraph state (VideoGenerationState) + graph topology + node stubs"
+      order: 3
+      dependencies: [WP-01]
+    - id: WP-04
+      label: "LangGraph nodes: script_node (Structured Output với with_structured_output) + validator_node + retry routing"
+      order: 4
+      dependencies: [WP-03]
+    - id: WP-05
+      label: "LangGraph nodes: audio_node & slides_node (parallel chunk workers) + assembler_node & FFmpegAssembler (sync slide/audio duration)"
+      order: 5
+      dependencies: [WP-04]
+    - id: WP-06
+      label: "JobQueue abstraction + AsyncioWorkerQueue (worker pool) + FastAPI endpoints + static file mount"
+      order: 6
+      dependencies: [WP-02, WP-03]
+    - id: WP-07
+      label: "Unit tests: structured output, retry routing, chunk parallel execution, queue concurrency, API endpoints"
+      order: 7
+      dependencies: [WP-05, WP-06]
+    - id: WP-08
+      label: "Smoke test 3 required queries + pre-generate 3 sample videos"
+      order: 8
+      dependencies: [WP-07]
+    - id: WP-09
+      label: "README.md + ARCHITECTURE.md (chi tiết Queue, Chunking, Structured Output)"
+      order: 9
+      dependencies: [WP-08]
+
+# ---------------------------------------------------------------------------
+# Verification contract
+# ---------------------------------------------------------------------------
+verification_contract:
+  required_checks:
+    - id: CHK-001
+      description: "pytest tests/ -v — tất cả unit tests pass không cần API key"
+      command: "pytest tests/ -v"
+    - id: CHK-002
+      description: "Smoke test 3 required queries end-to-end"
+      command: "CODEX_API_BASE=http://localhost:11434/v1 python scripts/smoke_test.py"
+    - id: CHK-003
+      description: "3 sample artifact MP4 hợp lệ"
+      command: "ffprobe artifacts/samples/*.mp4"
+    - id: CHK-004
+      description: "DB được tạo và job row tồn tại sau POST"
+      command: "sqlite3 chemistry.db 'SELECT job_id, status FROM jobs;'"
+  acceptance_matrix:
+    - ac: AC-001
+      check: CHK-001
+    - ac: AC-002
+      check: CHK-001
+    - ac: AC-003
+      check: CHK-001
+    - ac: AC-004
+      check: CHK-001
+    - ac: AC-005
+      check: CHK-001
+    - ac: AC-006
+      check: CHK-004
+    - ac: AC-007
+      check: CHK-001
+    - ac: AC-008
+      check: CHK-003
+    - ac: AC-009
+      check: CHK-002
+    - ac: AC-010
+      check: CHK-001
+    - ac: AC-011
+      manual: "README.md review theo checklist"
+    - ac: AC-012
+      manual: "ARCHITECTURE.md review theo checklist"
+
+# ---------------------------------------------------------------------------
+# Risks and mitigations
+# ---------------------------------------------------------------------------
+risks:
+  - id: RSK-001
+    statement: "Process restart khi job đang generating → job bị stuck ở 'generating'."
+    mitigation: "DEC-004: startup event reset tất cả 'generating' job về 'failed' với error_reason 'server_restart'."
+
+  - id: RSK-002
+    statement: "LangGraph API version thay đổi."
+    mitigation: "Pin version langgraph>=0.2 trong requirements.txt."
+
+  - id: RSK-003
+    statement: "ffmpeg không có trên host machine của reviewer/test environment."
+    mitigation: "MockAssembler cho test; FFmpegAssembler chỉ chạy trong smoke test/production."
+
+  - id: RSK-004
+    statement: "gTTS gặp rate limit hoặc mất kết nối internet."
+    mitigation: "pyttsx3 offline fallback tự động khi gTTS fail. Chunk worker retry độc lập per chunk."
+
+  - id: RSK-005
+    statement: "SQLAlchemy async session leak trong background worker."
+    mitigation: "Async context manager (async with async_session_factory()) độc lập cho mỗi job execution."
+
+  - id: RSK-006
+    statement: "Timebox 120 phút tight cho 9 WP."
+    mitigation: "Tách rõ MockAssembler vs FFmpegAssembler, cấu trúc WP có thể chạy độc lập."
+
+# ---------------------------------------------------------------------------
+# Limitations
+# ---------------------------------------------------------------------------
+limitations:
+  - "In-process queue mất pending jobs khi process restart (mitigated bởi DEC-004 cho generating jobs)."
+  - "SQLite concurrency thích hợp cho local dev/demo; kiến trúc JobQueue và SQLAlchemy sẵn sàng upgrade lên PostgreSQL + Redis."
+  - "Video quality là programmatic slides + TTS audio — tối ưu cho cost và reliability."
+  - "Không có authentication — single-user local demo."
+
+design_refs:
+  - docs/plans/active/CHG-002-langgraph-sqlalchemy-mvp.md
+
+self_review: passed
+next_gate: H1

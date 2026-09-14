@@ -1,0 +1,188 @@
+{
+  "schema": "agent-task-result/v2",
+  "run_id": "RUN-CHG-002-M2-01",
+  "task_id": "IMP-M2-AI-01",
+  "change_id": "CHG-002",
+  "owner": "ai-dev",
+  "attempt": 1,
+  "status": "done-with-concerns",
+  "skills": [
+    "sk-ai-engineering",
+    "sk-test-engineering"
+  ],
+  "requirement_refs": [
+    "REQ-005",
+    "REQ-008",
+    "REQ-010"
+  ],
+  "acceptance_refs": [
+    "AC-007",
+    "AC-010",
+    "M2-EC-GRAPH",
+    "M2-EC-STRUCTURED",
+    "M2-EC-RETRY"
+  ],
+  "base_identity": "sha256:382c6e6d0b1e1c7d3453e155bb3606b079a9929b756a86d3f3c477f346b473c9",
+  "result_identity": "sha256:c0a9db6e7945f9c0e2d2b57a06da2c0b55bd8479f667be73286bbc2a9f29f286",
+  "identity_evidence": {
+    "repository_revision": "cbe20ddd47f24bec700c56e6f817d4776c25a629",
+    "base_source": "artifacts/evidence/CHG-002/RUN-CHG-002-M2-01/preflight.yaml",
+    "result_algorithm": "sha256(UTF-8(sorted(path + NUL + sha256:file), LF-joined))",
+    "artifact_self_hash_excluded": true,
+    "result_manifest": [
+      {"path": "app/llm_factory.py", "sha256": "sha256:2227bb2f3344a120f30a5f6d61b704e685c414be9cdb3f0d88454b8635313e05", "size_bytes": 1143},
+      {"path": "app/pipeline/graph.py", "sha256": "sha256:a2358987277ccf54ec3a8f71efd287c6af1c15b8b17de684778c5453bfd71d6a", "size_bytes": 3307},
+      {"path": "app/pipeline/nodes/script_node.py", "sha256": "sha256:aec8dce3233a15b4484b997e93da6adce0f80c2157e17f87c6b7633dac4b082f", "size_bytes": 2786},
+      {"path": "app/pipeline/nodes/validator_node.py", "sha256": "sha256:a2e5f289bd8bf528899985b3909c45f06dce9a6d39aa8a7ae9bbdac5a76779ac", "size_bytes": 1934},
+      {"path": "app/pipeline/state.py", "sha256": "sha256:294c08f43d2f416ca1fd972ddf210512444cbbbbed9b75ca421e82851cb9f684", "size_bytes": 470},
+      {"path": "app/schemas/script.py", "sha256": "sha256:1382bb51b9dcf57107d9102ca0f577e8b12fa6ab280a3886039bdca2778f88e6", "size_bytes": 1068},
+      {"path": "tests/conftest.py", "sha256": "sha256:aad4c9588769def5bf0fd0d8b97e51b6086a99dc6c25e77bb99b3bb89d30e01c", "size_bytes": 4256},
+      {"path": "tests/test_pipeline.py", "sha256": "sha256:b8ed5c9e01d5bef29a4526eead5155081c6c3fb627bf8e2fa3924d903c935188", "size_bytes": 17848}
+    ]
+  },
+  "changed_paths": [
+    "app/llm_factory.py",
+    "app/schemas/script.py",
+    "app/pipeline/state.py",
+    "app/pipeline/graph.py",
+    "app/pipeline/nodes/script_node.py",
+    "app/pipeline/nodes/validator_node.py",
+    "tests/conftest.py",
+    "tests/test_pipeline.py",
+    "artifacts/evidence/CHG-002/RUN-CHG-002-M2-01/IMP-M2-AI-01.json"
+  ],
+  "summary": [
+    "ScriptChunk and VideoScript now enforce the approved SPEC-03 field and length contract.",
+    "script_node now uses only with_structured_output(VideoScript) and asynchronous ainvoke, then validates mapping-shaped fake output before domain use.",
+    "The graph routes retry directly from validate_script to generate_script, permits exactly two retries, and terminates at mark_failed with a non-empty error_reason.",
+    "Existing WP-05 implementations were not edited; graph.py only wires their repository-owned callables.",
+    "Deterministic contract tests cover accepted and rejected schemas, provider routing, asynchronous invocation, topology, retry exhaustion, and failure state."
+  ],
+  "test_evidence": {
+    "mode": "contract",
+    "reason": "The package changes Pydantic schemas, the provider factory, structured-output invocation, and LangGraph state transitions, so proof exercises valid, malformed, incomplete, and rejected boundary shapes with deterministic fakes.",
+    "contract": [
+      {
+        "refs": ["REQ-005", "M2-EC-GRAPH", "DEC-001"],
+        "accepted": "Typed state and the approved generate/validate/media/assemble topology compile and execute asynchronously.",
+        "rejected_or_boundary": "No retry adapter node exists; a persistently invalid script reaches mark_failed after three total invocations.",
+        "evidence_refs": ["CHK-M2-GRAPH"]
+      },
+      {
+        "refs": ["REQ-008", "AC-007", "M2-EC-STRUCTURED", "DEC-006"],
+        "accepted": "A complete VideoScript is returned as a typed model through with_structured_output(VideoScript) and ainvoke.",
+        "rejected_or_boundary": "Missing summary/chunk_id, fewer than three chunks, and short heading/narration/visual_notes are rejected; provider errors become explicit failure state.",
+        "evidence_refs": ["CHK-M2-STRUCTURED"]
+      },
+      {
+        "refs": ["REQ-008", "AC-007", "M2-EC-RETRY"],
+        "accepted": "A valid third result succeeds after two failed generations.",
+        "rejected_or_boundary": "A persistently invalid result fails after exactly two retries with status failed and a non-empty error_reason.",
+        "evidence_refs": ["CHK-M2-GRAPH", "CHK-M2-STRUCTURED"]
+      },
+      {
+        "refs": ["REQ-010", "AC-010", "DEC-005"],
+        "accepted": "Override, Codex-first routing, and Anthropic routing map to explicit model and temperature parameters.",
+        "rejected_or_boundary": "Missing provider configuration raises RuntimeError.",
+        "evidence_refs": ["CHK-M2-PROVIDER"]
+      }
+    ],
+    "deterministic_seam": "Async structured-output fake that records schema binding and invocation count and raises if synchronous invoke is used.",
+    "real_provider_calls": 0,
+    "credentials_accessed": false
+  },
+  "checks": [
+    {
+      "id": "CHK-M2-GRAPH",
+      "kind": "required",
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; pytest tests/test_pipeline.py::TestGraphTopology -v",
+      "started_at": "2026-09-13T16:41:02.7616683Z",
+      "finished_at": "2026-09-13T16:41:06.5128440Z",
+      "exit_code": 0,
+      "result": "passed",
+      "summary": "7 passed in 0.95s; one inherited PytestCacheWarning because .pytest_cache is not writable."
+    },
+    {
+      "id": "CHK-M2-STRUCTURED",
+      "kind": "required",
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; pytest tests/test_pipeline.py::TestScriptNode tests/test_pipeline.py::TestValidatorNode -v",
+      "started_at": "2026-09-13T16:41:13.6762586Z",
+      "finished_at": "2026-09-13T16:41:17.6429256Z",
+      "exit_code": 0,
+      "result": "passed",
+      "summary": "13 passed in 0.97s; schema shapes, async structured output, zero-regex proof, validation, and retry boundaries passed; one inherited PytestCacheWarning."
+    },
+    {
+      "id": "CHK-M2-PROVIDER",
+      "kind": "focused",
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; pytest -p no:cacheprovider tests/test_pipeline.py::TestLLMFactory -v",
+      "started_at": "2026-09-13T16:39:25.0969191Z",
+      "finished_at": "2026-09-13T16:39:33.6260408Z",
+      "exit_code": 0,
+      "result": "passed",
+      "summary": "4 passed in 5.14s using deterministic constructor fakes; no provider call or credential access."
+    },
+    {
+      "id": "CHK-M2-RUNTIME",
+      "kind": "provenance",
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; python -c \"import importlib.metadata as m; print('python=3.13.5'); print('pydantic=' + m.version('pydantic')); print('langchain-core=' + m.version('langchain-core')); print('langgraph=' + m.version('langgraph')); print('langchain-openai=' + m.version('langchain-openai')); print('langchain-anthropic=' + m.version('langchain-anthropic'))\"",
+      "started_at": "2026-09-13T16:41:27.2679295Z",
+      "finished_at": "2026-09-13T16:41:27.5741510Z",
+      "exit_code": 0,
+      "result": "passed",
+      "summary": "Python 3.13.5; pydantic 2.13.5; langchain-core 1.6.3; langgraph 1.2.11; langchain-openai 1.6.2; langchain-anthropic 1.7.2."
+    }
+  ],
+  "baseline_failures": [],
+  "introduced_failures": [],
+  "inherited_warnings": [
+    "PytestCacheWarning: .pytest_cache is not writable; the same warning was recorded in preflight and all required checks exited 0.",
+    "Runtime package versions do not match repository pins, inherited from preflight; requirements.txt is forbidden for this package."
+  ],
+  "revision_and_provenance": {
+    "prompt_revision": "spec-03-v1",
+    "prompt_authority": "docs/specs/SPEC-03-llm-structured-script.md section 4.1",
+    "schema_identity": "VideoScript/ScriptChunk SPEC-03",
+    "provider_models": [
+      {"route": "codex", "model": "settings.codex_model or codex-mini-latest", "temperature": 0},
+      {"route": "anthropic", "model": "claude-haiku-4-5-20251001", "temperature": 0},
+      {"route": "test", "model": "deterministic structured-output fake", "external_call": false}
+    ],
+    "tool_schema": "BaseChatModel.with_structured_output(VideoScript)",
+    "cache_behavior": "not_applicable",
+    "evaluation": "deterministic contract tests only",
+    "paid_cost": 0
+  },
+  "external_actions": [],
+  "h2_actions": [],
+  "self_review": {
+    "status": "passed",
+    "allowed_paths": "passed",
+    "acceptance_trace": "passed",
+    "unrelated_changes": "none",
+    "sensitive_output": "none",
+    "details": [
+      "All nine changed paths are listed by the work package.",
+      "Each requirement and acceptance reference is mapped in test_evidence.contract and supported by a passing check.",
+      "No unrelated change was introduced; WP-05 files and all forbidden paths were left unchanged.",
+      "No secrets, credentials, raw provider payloads, or live responses were read or persisted.",
+      "All eight code/test hashes matched preflight before takeover; no path conflict was observed.",
+      "No regex/manual parser and no synchronous structured LLM invocation remain in script_node.",
+      "The retry adapter node was removed; conditional routing returns directly to generate_script and reaches mark_failed after exactly two retries.",
+      "Only existing WP-05 callables are wired from graph.py; no WP-05 implementation file was edited.",
+      "No production mutation, dependency edit, provider call, credential use, or H2 action occurred."
+    ]
+  },
+  "contract_deltas": [],
+  "concerns": [
+    "Inherited runtime dependency versions differ from requirements.txt pins; dependency manifest changes are outside this package.",
+    "Real provider behavior remains intentionally unverified because H1 conditions and the work package prohibit live calls.",
+    "WP-05 execution checks were not run because this package may wire but must not modify or expand into WP-05."
+  ],
+  "unresolved": [
+    "Coordinator must disposition the inherited runtime-version mismatch outside this work package.",
+    "Live-provider verification requires a separately authorized package and matching H2 record if ever requested."
+  ],
+  "deviations": [],
+  "completed_at": "2026-09-13T16:43:16.4618611Z"
+}

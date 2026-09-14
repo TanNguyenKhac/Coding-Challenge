@@ -1,0 +1,505 @@
+schema: discovery-handoff/v2
+change_id: CHG-001
+mode: architectural
+status: ready-for-approval
+
+request:
+  sources:
+    - docs/Agentic_Backend_Challenge_AI_Chemistry_Video_Request_Service.md
+    - docs/product/overview.md
+  requested_output: buildable-change
+  timebox_minutes: 120
+
+repository:
+  mode: greenfield
+  root: D:/chemistry-video-engine
+  base_revision: "2cf89b0e20c3d8bfd2e7ed884770fb24b4643c72"
+  dirty: false
+
+# ---------------------------------------------------------------------------
+# Evidence ledger
+# ---------------------------------------------------------------------------
+evidence_ledger:
+  - id: EVD-001
+    classification: authoritative
+    statement: "FastAPI backend is required; no frontend."
+    source: docs/Agentic_Backend_Challenge_AI_Chemistry_Video_Request_Service.md §Product Requirements
+  - id: EVD-002
+    classification: authoritative
+    statement: "Async video-generation flow with visible job status is required."
+    source: docs/Agentic_Backend_Challenge_AI_Chemistry_Video_Request_Service.md §Product Requirements
+  - id: EVD-003
+    classification: authoritative
+    statement: "Generated artifact must have visual content and audio explanation."
+    source: docs/Agentic_Backend_Challenge_AI_Chemistry_Video_Request_Service.md §Product Requirements
+  - id: EVD-004
+    classification: authoritative
+    statement: "Three required queries: pH scale, covalent bonds, ionic vs covalent bonding."
+    source: docs/Agentic_Backend_Challenge_AI_Chemistry_Video_Request_Service.md §Required Chemistry Queries
+  - id: EVD-005
+    classification: authoritative
+    statement: "In-memory persistence and local file artifact store are acceptable."
+    source: docs/product/overview.md §Persistence and Simulation Policy
+  - id: EVD-006
+    classification: authoritative
+    statement: "Mocked or partly simulated generation is acceptable if boundary is clear."
+    source: docs/product/overview.md §Persistence and Simulation Policy
+  - id: EVD-007
+    classification: authoritative
+    statement: "Cost-efficiency and visual quality are both success metrics."
+    source: docs/product/overview.md §Cost Constraint
+  - id: EVD-008
+    classification: authoritative
+    statement: "Pipeline must validate output before reaching learner, define understandable failure states, apply retries/fallbacks, produce consistent results across repeated runs."
+    source: docs/product/overview.md §Reliability Requirements
+  - id: EVD-009
+    classification: authoritative
+    statement: "Timebox is 90–120 minutes; completion is not the end goal."
+    source: docs/Agentic_Backend_Challenge_AI_Chemistry_Video_Request_Service.md §Before You Start
+  - id: EVD-010
+    classification: derived
+    statement: "Greenfield repo — no application code exists. All modules must be created."
+    source: git status at base revision 2cf89b0
+  - id: EVD-011
+    classification: authoritative
+    statement: "Design backend so other STEM topics can be added later."
+    source: docs/product/overview.md §Required Queries
+  - id: EVD-012
+    classification: authoritative
+    statement: "Deliverables include README.md, architecture note, three committed generated videos, and API walkthrough."
+    source: docs/Agentic_Backend_Challenge_AI_Chemistry_Video_Request_Service.md §Deliverables
+
+# ---------------------------------------------------------------------------
+# Requirements
+# ---------------------------------------------------------------------------
+requirements:
+  - id: REQ-001
+    statement: "Expose a POST /jobs endpoint accepting a chemistry concept query string and returning a job_id with status 'pending'."
+    source_evidence: [EVD-001, EVD-002]
+    priority: must
+
+  - id: REQ-002
+    statement: "Expose a GET /jobs endpoint returning all jobs with their current status."
+    source_evidence: [EVD-002]
+    priority: must
+
+  - id: REQ-003
+    statement: "Expose a GET /jobs/{job_id} endpoint returning full job detail including status and artifact_url when complete."
+    source_evidence: [EVD-002]
+    priority: must
+
+  - id: REQ-004
+    statement: "Expose a GET /jobs/{job_id}/artifact endpoint (or file serve) allowing retrieval of the completed video file."
+    source_evidence: [EVD-002, EVD-003]
+    priority: must
+
+  - id: REQ-005
+    statement: "Run video generation asynchronously (background task); job status transitions: pending → generating → complete | failed."
+    source_evidence: [EVD-002]
+    priority: must
+
+  - id: REQ-006
+    statement: "Generated artifact must be a video file (MP4) containing visual slides and synthesized audio narration."
+    source_evidence: [EVD-003]
+    priority: must
+
+  - id: REQ-007
+    statement: "Pipeline must handle the three required chemistry queries end-to-end reliably."
+    source_evidence: [EVD-004]
+    priority: must
+
+  - id: REQ-008
+    statement: "Pipeline must validate LLM script output before proceeding; retry up to 2 times on validation failure; set job to 'failed' with reason on exhaustion."
+    source_evidence: [EVD-008]
+    priority: must
+
+  - id: REQ-009
+    statement: "Artifacts and job state are persisted in-memory and to a local artifacts/ directory; boundary must be explicit (a single JobStore class)."
+    source_evidence: [EVD-005]
+    priority: must
+
+  - id: REQ-010
+    statement: "Generation boundary must be a provider-pattern interface so real AI/video providers can be swapped in without changing job orchestration."
+    source_evidence: [EVD-006, EVD-011]
+    priority: must
+
+  - id: REQ-011
+    statement: "README.md must contain setup, run, API, and test instructions. Architecture note must describe job lifecycle, persistence boundary, and AI/video boundary."
+    source_evidence: [EVD-012]
+    priority: must
+
+  - id: REQ-012
+    statement: "Cost per generated video must be documented; the chosen pipeline must explain what was optimized for."
+    source_evidence: [EVD-007]
+    priority: must
+
+# ---------------------------------------------------------------------------
+# Acceptance criteria
+# ---------------------------------------------------------------------------
+acceptance_criteria:
+  - id: AC-001
+    requirement_ids: [REQ-001]
+    observable_result: "POST /jobs with body {\"concept\": \"How does the pH scale work?\"} returns HTTP 201 with {job_id, status: \"pending\"}."
+
+  - id: AC-002
+    requirement_ids: [REQ-002]
+    observable_result: "GET /jobs returns a JSON array containing at least the submitted job with status visible."
+
+  - id: AC-003
+    requirement_ids: [REQ-003]
+    observable_result: "GET /jobs/{job_id} after completion returns {job_id, concept, status: \"complete\", artifact_url}."
+
+  - id: AC-004
+    requirement_ids: [REQ-004]
+    observable_result: "GET /jobs/{job_id}/artifact returns the MP4 file with Content-Type video/mp4."
+
+  - id: AC-005
+    requirement_ids: [REQ-005]
+    observable_result: "Job transitions through pending → generating → complete without blocking the HTTP response. GET /jobs/{job_id} during generation returns status: \"generating\"."
+
+  - id: AC-006
+    requirement_ids: [REQ-006]
+    observable_result: "Completed artifact is a valid MP4 file playable in a standard video player, with audio narration audible and at least one visual slide per concept section."
+
+  - id: AC-007
+    requirement_ids: [REQ-007]
+    observable_result: "All three required queries complete with status: complete and a playable artifact in two consecutive independent runs."
+
+  - id: AC-008
+    requirement_ids: [REQ-008]
+    observable_result: "When the LLM script validation fails, the job is retried automatically; after max retries the job status is 'failed' with a non-empty error_reason field."
+
+  - id: AC-009
+    requirement_ids: [REQ-009]
+    observable_result: "JobStore is the sole in-memory and on-disk state writer; no other module writes to artifacts/ or modifies job state."
+
+  - id: AC-010
+    requirement_ids: [REQ-010]
+    observable_result: "ScriptProvider and VideoProvider are abstract interfaces. A mock implementation passes tests without any real API keys. Swapping to a real provider requires only the provider module to change."
+
+  - id: AC-011
+    requirement_ids: [REQ-011]
+    observable_result: "README.md is present and covers: pip install, uvicorn run command, curl examples for all four endpoints, and how to run tests."
+
+  - id: AC-012
+    requirement_ids: [REQ-012]
+    observable_result: "Architecture note contains a cost table showing estimated cost per video for the chosen real provider and explains what was optimized for."
+
+# ---------------------------------------------------------------------------
+# Scope
+# ---------------------------------------------------------------------------
+scope:
+  in:
+    - FastAPI application with four endpoints (POST /jobs, GET /jobs, GET /jobs/{id}, GET /jobs/{id}/artifact)
+    - Async background job orchestration (asyncio BackgroundTasks)
+    - JobStore (in-memory + local files)
+    - ScriptProvider interface + ClaudeScriptProvider (real) + MockScriptProvider (tests)
+    - VideoProvider interface + FFmpegVideoProvider (real, uses TTS + slides) + MockVideoProvider (tests)
+    - LLM script validation and retry logic (up to 2 retries)
+    - Static file serving for artifacts
+    - Unit tests covering job lifecycle and validation/retry logic
+    - README.md and ARCHITECTURE.md
+    - Three pre-generated sample videos committed to artifacts/samples/
+  out:
+    - Frontend or UI of any kind
+    - Database (in-memory is sufficient per EVD-005)
+    - Authentication or multi-tenant support
+    - Streaming video or real-time progress websocket
+    - Support for non-chemistry STEM topics (extensibility via provider pattern is in-scope; actual support is out)
+    - Docker/containerization (local run only for MVP)
+
+# ---------------------------------------------------------------------------
+# Impact map
+# ---------------------------------------------------------------------------
+impact:
+  interfaces:
+    - "REST API: POST /jobs, GET /jobs, GET /jobs/{job_id}, GET /jobs/{job_id}/artifact"
+    - "Static file mount: GET /artifacts/{filename} (via FastAPI StaticFiles)"
+  data_and_state:
+    - "Job record: {job_id, concept, status, created_at, updated_at, artifact_path, error_reason}"
+    - "In-memory dict (JobStore) — process lifetime only"
+    - "Artifact files: artifacts/{job_id}.mp4 — local filesystem"
+  modules_or_paths:
+    - app/main.py
+    - app/routers/jobs.py
+    - app/models.py
+    - app/store.py
+    - app/pipeline/orchestrator.py
+    - app/pipeline/script_provider.py
+    - app/pipeline/video_provider.py
+    - app/pipeline/validator.py
+    - tests/test_jobs.py
+    - tests/test_pipeline.py
+    - artifacts/samples/  (committed pre-generated videos)
+    - README.md
+    - ARCHITECTURE.md
+  dependencies:
+    - "fastapi, uvicorn — web framework"
+    - "anthropic (claude-haiku-4-5-20251001) — LLM script generation (real provider)"
+    - "gTTS or pyttsx3 — text-to-speech for audio"
+    - "Pillow — slide image generation"
+    - "ffmpeg (system binary via ffmpeg-python or subprocess) — MP4 assembly"
+    - "pytest, httpx — testing"
+  tests:
+    - "test_jobs.py: POST creates job, GET lists jobs, GET /id returns job, GET /id/artifact returns file, 404 on unknown id"
+    - "test_pipeline.py: validator rejects malformed script, retry logic fires on validation failure, max retry => failed status"
+
+# ---------------------------------------------------------------------------
+# Options (required for architectural mode)
+# ---------------------------------------------------------------------------
+options:
+  - id: OPT-A
+    summary: "Claude (Haiku) for script + gTTS audio + Pillow slides + FFmpeg MP4 assembly"
+    affected_boundaries: [ScriptProvider, VideoProvider, artifacts/]
+    benefits:
+      - Cheapest Claude model for text; Haiku costs ~$0.0008/1K input tokens
+      - gTTS is free (Google TTS HTTP API, no key for short text)
+      - Pillow + FFmpeg are local — zero per-video cost for video assembly
+      - Full control over slide layout and structure
+      - No dependency on external video-generation providers that are expensive or rate-limited
+    costs:
+      - Slide generation is programmatic, not cinematic — visually basic
+      - FFmpeg CLI must be installed on the host
+      - gTTS requires internet; pyttsx3 is offline fallback
+    risks:
+      - gTTS rate-limit on repeated calls — mitigated by pyttsx3 fallback
+      - FFmpeg not installed — documented prerequisite; test skips gracefully
+    reversibility: high — ScriptProvider and VideoProvider are interfaces; swap real provider in one module
+    verification_impact: "MockScriptProvider and MockVideoProvider allow all tests to run without API keys or FFmpeg"
+    estimated_cost_per_video: "~$0.001–0.003 (Haiku LLM call) + $0 (local assembly) = <$0.01 total"
+
+  - id: OPT-B
+    summary: "Claude (Haiku) for script + ElevenLabs TTS + Remotion/Revideo for animated video"
+    affected_boundaries: [ScriptProvider, VideoProvider, artifacts/]
+    benefits:
+      - Higher audio quality (ElevenLabs)
+      - More cinematic animated output
+    costs:
+      - ElevenLabs costs $0.18–0.30 per 1K characters (~300 chars per slide × 5 slides = $0.27/video)
+      - Remotion requires Node.js runtime and build step
+      - Significantly more complex setup within 120-min timebox
+    risks:
+      - ElevenLabs key management; cost grows with retries
+      - Remotion not installable without Node — hard external dependency
+    reversibility: medium
+    verification_impact: "Hard to mock ElevenLabs without a wrapper"
+    estimated_cost_per_video: "~$0.30/video (ElevenLabs) + $0.003 (Haiku) = ~$0.30"
+
+  - id: OPT-C
+    summary: "OpenAI GPT-4o-mini for script + OpenAI TTS + FFmpeg assembly"
+    affected_boundaries: [ScriptProvider, VideoProvider, artifacts/]
+    benefits:
+      - Single provider API (OpenAI) for both script and audio
+    costs:
+      - GPT-4o-mini is slightly more expensive than Haiku for comparable quality
+      - OpenAI TTS costs $0.015/1K chars — more expensive than gTTS
+      - Requires OpenAI API key separate from Anthropic key already in context
+    risks:
+      - Cost rises quickly on retries
+    reversibility: high
+    estimated_cost_per_video: "~$0.02/video"
+
+recommended_option: OPT-A
+recommendation_rationale: >
+  OPT-A delivers all required outputs within the timebox at <$0.01/video.
+  Claude Haiku is the cheapest capable model for structured script generation.
+  Local FFmpeg + Pillow assembly eliminates per-video variable cost for video.
+  gTTS provides free audio with a pyttsx3 offline fallback for reliability.
+  The provider interface ensures OPT-B or OPT-C can replace the implementation
+  without touching job orchestration. This is the right slice for the MVP.
+
+# ---------------------------------------------------------------------------
+# Architecture / Design
+# ---------------------------------------------------------------------------
+design_refs:
+  - docs/plans/active/CHG-001-chemistry-video-mvp.md
+
+# Component boundaries
+#
+# app/
+#   main.py          — FastAPI app setup, static file mount, lifespan
+#   routers/jobs.py  — four route handlers; delegates to JobStore and pipeline
+#   models.py        — Pydantic models: JobCreate, JobResponse, JobStatus enum
+#   store.py         — JobStore singleton (in-memory dict + artifact path resolver)
+#   pipeline/
+#     orchestrator.py  — async run_job(job_id): calls script_provider, validator,
+#                        video_provider; handles retry loop; updates JobStore
+#     script_provider.py — ScriptProvider ABC + ClaudeScriptProvider + MockScriptProvider
+#     video_provider.py  — VideoProvider ABC + FFmpegVideoProvider + MockVideoProvider
+#     validator.py       — validate_script(script_dict) -> bool + reason
+#
+# Failure and retry contract:
+#   orchestrator retries script generation up to MAX_RETRIES=2 on ValidationError.
+#   On exhaustion: job.status = "failed", job.error_reason = last validation message.
+#   VideoProvider failure: job.status = "failed", job.error_reason = exception message.
+#   All transitions are atomic within JobStore (single-threaded asyncio event loop).
+#
+# Script schema (dict validated by validator.py):
+#   {
+#     "title": str,
+#     "sections": [{"heading": str, "narration": str, "visual_notes": str}],
+#     "summary": str
+#   }
+#   Validation rules: min 3 sections, each narration >= 20 chars, title non-empty.
+#
+# Video assembly (FFmpegVideoProvider):
+#   1. For each section: render Pillow slide image (1280×720, heading + visual_notes text)
+#   2. TTS narration per section via gTTS (fallback: pyttsx3)
+#   3. Combine slide image + audio into section clip via FFmpeg
+#   4. Concatenate all section clips + title card + summary card into final MP4
+#   Output: artifacts/{job_id}.mp4
+#
+# Static serving: FastAPI mounts artifacts/ at /artifacts — no custom endpoint needed
+# for file download; GET /jobs/{id}/artifact redirects to /artifacts/{id}.mp4
+
+# ---------------------------------------------------------------------------
+# Proposed decisions
+# ---------------------------------------------------------------------------
+proposed_decisions:
+  - id: DEC-001
+    decision: "Use Claude claude-haiku-4-5-20251001 as the LLM for script generation (ClaudeScriptProvider)."
+    rationale: "Cheapest capable Claude model. Fits provider interface. Swappable."
+  - id: DEC-002
+    decision: "Use gTTS with pyttsx3 offline fallback for text-to-speech."
+    rationale: "gTTS is free and produces natural-sounding audio. pyttsx3 ensures reliability when gTTS is unavailable."
+  - id: DEC-003
+    decision: "Use Pillow for slide rendering and FFmpeg for MP4 assembly."
+    rationale: "Zero per-video cost; full control; well-understood tools."
+  - id: DEC-004
+    decision: "Script validation requires min 3 sections, each narration >= 20 chars, non-empty title."
+    rationale: "Minimum bar for coherent educational content. Retries on failure up to MAX_RETRIES=2."
+  - id: DEC-005
+    decision: "Job state is in-memory (dict) for MVP; artifact files persist to disk."
+    rationale: "Acceptable per EVD-005. JobStore is the single owner of both."
+
+# ---------------------------------------------------------------------------
+# Plan reference
+# ---------------------------------------------------------------------------
+plan:
+  required: true
+  ref: docs/plans/active/CHG-001-chemistry-video-mvp.md
+  work_packages:
+    - id: WP-01
+      label: "Project scaffold and models"
+      order: 1
+      dependencies: []
+    - id: WP-02
+      label: "JobStore and API endpoints"
+      order: 2
+      dependencies: [WP-01]
+    - id: WP-03
+      label: "Pipeline: ScriptProvider + validator + retry"
+      order: 3
+      dependencies: [WP-01]
+    - id: WP-04
+      label: "Pipeline: VideoProvider (Pillow + gTTS + FFmpeg)"
+      order: 4
+      dependencies: [WP-03]
+    - id: WP-05
+      label: "Orchestrator wiring and end-to-end smoke test"
+      order: 5
+      dependencies: [WP-02, WP-04]
+    - id: WP-06
+      label: "Pre-generate three sample videos and commit"
+      order: 6
+      dependencies: [WP-05]
+    - id: WP-07
+      label: "README.md and ARCHITECTURE.md"
+      order: 7
+      dependencies: [WP-06]
+
+# ---------------------------------------------------------------------------
+# Verification contract
+# ---------------------------------------------------------------------------
+verification_contract:
+  required_checks:
+    - id: CHK-001
+      description: "pytest tests/test_jobs.py — all HTTP endpoint tests pass"
+      command: "pytest tests/test_jobs.py -v"
+    - id: CHK-002
+      description: "pytest tests/test_pipeline.py — validator and retry tests pass"
+      command: "pytest tests/test_pipeline.py -v"
+    - id: CHK-003
+      description: "End-to-end smoke: POST all three required concepts; poll until complete; download artifacts"
+      command: "python scripts/smoke_test.py"
+    - id: CHK-004
+      description: "All three artifact MP4 files are valid (non-zero, parseable by ffprobe)"
+      command: "ffprobe artifacts/samples/*.mp4"
+  acceptance_matrix:
+    - ac: AC-001
+      check: CHK-001
+    - ac: AC-002
+      check: CHK-001
+    - ac: AC-003
+      check: CHK-001
+    - ac: AC-004
+      check: CHK-001
+    - ac: AC-005
+      check: CHK-001
+    - ac: AC-006
+      check: CHK-004
+    - ac: AC-007
+      check: CHK-003
+    - ac: AC-008
+      check: CHK-002
+    - ac: AC-009
+      check: CHK-001
+    - ac: AC-010
+      check: CHK-002
+    - ac: AC-011
+      manual: "README.md reviewed against checklist"
+    - ac: AC-012
+      manual: "ARCHITECTURE.md reviewed for cost table"
+  required_artifacts:
+    - artifacts/samples/job-ph-scale.mp4
+    - artifacts/samples/job-covalent-bonds.mp4
+    - artifacts/samples/job-ionic-vs-covalent.mp4
+    - README.md
+    - ARCHITECTURE.md
+  repeatability_policy: >
+    Run scripts/smoke_test.py twice in sequence. Both runs must produce
+    status: complete for all three concepts and valid MP4 artifacts.
+    LLM non-determinism is contained by script validation + retry; if the second
+    run fails validation repeatedly, that is a pipeline defect, not accepted variance.
+  cost_evidence_policy: >
+    ARCHITECTURE.md must include a cost table with: model name, estimated tokens
+    per script generation call, cost per 1K tokens, estimated total cost per video.
+    Values must be sourced from the provider's published pricing at time of writing.
+  release_profile: local-demo
+
+# ---------------------------------------------------------------------------
+# External effects
+# ---------------------------------------------------------------------------
+external_effects:
+  default: deny
+  h2_triggers:
+    - "Calling Anthropic API (ClaudeScriptProvider) — requires ANTHROPIC_API_KEY env var; approved as read-only LLM call, no data persistence at provider"
+    - "Calling gTTS HTTP API — approved as read-only TTS call, no credentials required"
+
+# ---------------------------------------------------------------------------
+# Risks
+# ---------------------------------------------------------------------------
+risks:
+  - id: RSK-001
+    statement: "FFmpeg not installed on evaluator machine."
+    mitigation: "MockVideoProvider allows all tests to pass without FFmpeg. README documents install step. CI can skip FFmpeg tests."
+  - id: RSK-002
+    statement: "gTTS rate-limited on rapid repeated calls during smoke tests."
+    mitigation: "pyttsx3 offline fallback is tried automatically. Smoke test adds 1s delay between TTS calls."
+  - id: RSK-003
+    statement: "Claude Haiku returns malformed JSON in script generation."
+    mitigation: "Validator catches this and triggers retry up to MAX_RETRIES=2. Prompt uses system instructions + json_object response format."
+  - id: RSK-004
+    statement: "120-minute timebox is tight for WP-04 (video assembly) and WP-06 (pre-generation)."
+    mitigation: "MockVideoProvider produces a 1-frame valid MP4 stub that satisfies all AC except AC-006 visual quality. WP-06 can use pre-committed stubs if time runs out; real generation can be triggered post-submission."
+
+# ---------------------------------------------------------------------------
+# Limitations
+# ---------------------------------------------------------------------------
+limitations:
+  - "In-memory job store is lost on process restart — acceptable per EVD-005."
+  - "No authentication — single-user local demo only."
+  - "Video quality is programmatic slides, not cinematic animation — optimized for cost and reliability over production aesthetics."
+
+self_review: passed
+next_gate: H1

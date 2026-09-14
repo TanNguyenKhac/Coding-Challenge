@@ -1,0 +1,72 @@
+schema: implementation-handoff/v2
+run_id: RUN-CHG-002-M4-02
+change_id: CHG-002
+mode: apply
+approval_ref: artifacts/handoffs/CHG-002/H1-M4-r2.yaml
+discovery_handoff_ref: artifacts/handoffs/CHG-002-discovery.yaml
+base_revision: 0e901d4167af93964926a1652b82068a1d4cc84e
+candidate_ref:
+  type: content-manifest
+  value: artifacts/evidence/CHG-002/RUN-CHG-002-M4-02/candidate-manifest.json
+  manifest_sha256: sha256:7b45a7f03589dff07c5c6dd9f0baef555dd33e598de1655072c684f5792db11c
+  dirty: true
+status: ready-for-verification
+task_results:
+  - task_id: IMP-M4-BACKEND-01
+    owner: backend-dev
+    skills: [sk-backend-engineering, sk-test-engineering]
+    status: done
+    requirement_refs: [REQ-001, REQ-002, REQ-003, REQ-004, REQ-006, REQ-007]
+    acceptance_refs: [AC-001, AC-002, AC-003, AC-004, AC-005, AC-006]
+    changed_paths:
+      - app/api/v1/jobs.py
+      - app/main.py
+      - app/services/job_service.py
+      - app/services/queue.py
+      - tests/test_api.py
+      - tests/test_queue.py
+    evidence_ref: artifacts/evidence/CHG-002/RUN-CHG-002-M4-02/IMP-M4-BACKEND-01.json
+concern_dispositions: []
+conformance:
+  approved_intents:
+    - intent_ref: AC-001
+      status: satisfied
+      evidence_refs: [artifacts/evidence/CHG-002/RUN-CHG-002-M4-02/final-check.json]
+    - intent_ref: AC-002
+      status: satisfied
+      evidence_refs: [artifacts/evidence/CHG-002/RUN-CHG-002-M4-02/final-check.json]
+    - intent_ref: AC-003
+      status: satisfied
+      evidence_refs: [artifacts/evidence/CHG-002/RUN-CHG-002-M4-02/final-check.json]
+    - intent_ref: AC-004
+      status: satisfied
+      evidence_refs: [artifacts/evidence/CHG-002/RUN-CHG-002-M4-02/final-check.json]
+    - intent_ref: AC-005
+      status: satisfied
+      evidence_refs:
+        - artifacts/evidence/CHG-002/RUN-CHG-002-M4-02/IMP-M4-BACKEND-01.json
+        - artifacts/evidence/CHG-002/RUN-CHG-002-M4-02/final-check.json
+    - intent_ref: AC-006
+      status: satisfied
+      evidence_refs:
+        - artifacts/evidence/CHG-002/RUN-CHG-002-M4-02/IMP-M4-BACKEND-01.json
+        - artifacts/evidence/CHG-002/RUN-CHG-002-M4-02/final-check.json
+  unrequested_changes: []
+contract_changes: []
+external_actions: []
+concurrent_unrelated_changes:
+  - paths: [docs/README.md, docs/guides/]
+    owner: external-writer
+    disposition: preserved-outside-candidate
+    evidence: "Observed after preflight; no overlap with M4 allowed paths or candidate manifest."
+deviations:
+  - "Fix round 1 chỉ chuẩn hóa result identity và dọn test bytecode byproducts; product/test bytes không đổi."
+unresolved: []
+checks:
+  - command: pytest tests/test_api.py tests/test_queue.py -v
+    exit_code: 0
+    evidence_ref: artifacts/evidence/CHG-002/RUN-CHG-002-M4-02/final-check.json
+  - command: pytest tests/ -v
+    exit_code: 0
+    evidence_ref: artifacts/evidence/CHG-002/RUN-CHG-002-M4-02/final-check.json
+next_workflow: wf-verify

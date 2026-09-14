@@ -1,0 +1,7 @@
+interface:
+  display_name: "Git Add and Commit"
+  short_description: "Stage đúng phạm vi và tạo commit message"
+  default_prompt: "Dùng $git-add-commit để kiểm tra thay đổi, stage đúng phạm vi và tạo commit với message từ diff."
+
+policy:
+  allow_implicit_invocation: true

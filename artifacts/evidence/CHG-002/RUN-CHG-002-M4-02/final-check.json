@@ -1,0 +1,45 @@
+{
+  "schema": "implementation-check-evidence/v1",
+  "run_id": "RUN-CHG-002-M4-02",
+  "change_id": "CHG-002",
+  "base_revision": "0e901d4167af93964926a1652b82068a1d4cc84e",
+  "checks": [
+    {
+      "command": "pytest tests/test_api.py tests/test_queue.py -v",
+      "command_source": "docs/plans/PHASED-IMPLEMENTATION-PLAN.md#milestone-4",
+      "started_at": "2026-09-14T05:08:09.0923470Z",
+      "finished_at": "2026-09-14T05:08:12.7446403Z",
+      "exit_code": 0,
+      "output_summary": "21 collected; 21 passed in 1.30s."
+    },
+    {
+      "command": "pytest tests/ -v",
+      "command_source": "artifacts/handoffs/CHG-002-discovery.yaml#verification_contract",
+      "started_at": "2026-09-14T05:08:12.7525824Z",
+      "finished_at": "2026-09-14T05:08:25.9782725Z",
+      "exit_code": 0,
+      "output_summary": "52 collected; 52 passed in 10.17s."
+    }
+  ],
+  "invariant_evidence": {
+    "authority_refs": [
+      "docs/specs/SPEC-02-queue-worker.md",
+      "docs/specs/SPEC-01-api-persistence.md"
+    ],
+    "positive": [
+      "AsyncioWorkerQueue concurrency=2 processed five jobs with observed peak <=2.",
+      "run_pipeline entered and exited one worker-owned async_session_factory context."
+    ],
+    "negative": [
+      "TDD RED collected successfully and the concurrency/session/lifecycle/API cases failed while WP-06 behavior was absent; exit_code=1."
+    ],
+    "enforcement": {
+      "local": "pytest owner exists and both focused and full commands passed.",
+      "optional_hook": "No pre-commit hook configuration found.",
+      "ci": "No checked-in .github workflow found.",
+      "branch_protection": "Unverified externally."
+    }
+  },
+  "external_actions": [],
+  "result": "pass"
+}

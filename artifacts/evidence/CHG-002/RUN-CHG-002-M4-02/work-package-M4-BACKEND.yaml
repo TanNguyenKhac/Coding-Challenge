@@ -1,0 +1,88 @@
+schema: work-package/v2
+run_id: RUN-CHG-002-M4-02
+task_id: IMP-M4-BACKEND-01
+change_id: CHG-002
+mode: apply
+owner: backend-dev
+goal: "Triển khai WP-06: queue/worker concurrency-limited, worker-owned DB session, bốn REST endpoints và FastAPI lifespan/static artifact mount."
+requirement_refs: [REQ-001, REQ-002, REQ-003, REQ-004, REQ-006, REQ-007]
+acceptance_refs: [AC-001, AC-002, AC-003, AC-004, AC-005, AC-006]
+decision_refs: [OPT-A]
+authority_refs:
+  - docs/plans/PHASED-IMPLEMENTATION-PLAN.md
+  - docs/plans/active/CHG-002-langgraph-sqlalchemy-mvp.md
+  - docs/specs/SPEC-01-api-persistence.md
+  - docs/specs/SPEC-02-queue-worker.md
+  - artifacts/handoffs/CHG-002-discovery.yaml
+  - artifacts/handoffs/CHG-002/H1-M4-r2.yaml
+context_refs:
+  - docs/workflows/handoff-contracts.md
+  - app/config.py
+  - app/database.py
+  - app/models/job.py
+  - app/schemas/job.py
+  - app/repositories/job_repository.py
+  - app/pipeline/state.py
+  - app/pipeline/graph.py
+  - artifacts/evidence/CHG-002/RUN-CHG-002-M4-02/preflight.yaml
+required_skills: [sk-backend-engineering, sk-test-engineering]
+depends_on: []
+allowed_paths:
+  - app/services/queue.py
+  - app/services/job_service.py
+  - app/api/v1/jobs.py
+  - app/main.py
+  - tests/test_api.py
+  - tests/test_queue.py
+  - artifacts/evidence/CHG-002/RUN-CHG-002-M4-02/IMP-M4-BACKEND-01.json
+forbidden_paths:
+  - app/config.py
+  - app/database.py
+  - app/models/job.py
+  - app/schemas/job.py
+  - app/repositories/job_repository.py
+  - app/pipeline/
+  - tests/conftest.py
+  - tests/test_pipeline.py
+  - requirements.txt
+  - docs/
+consumes_interfaces:
+  - "JobRepository create/get/list_all/update_status/reset_stuck_jobs"
+  - "async_session_factory và get_session"
+  - "VideoConfig, JobCreate, JobResponse, JobStatus schema"
+  - "build_video_graph().ainvoke(VideoGenerationState)"
+produces_interfaces:
+  - "JobQueue.start/stop/enqueue"
+  - "AsyncioWorkerQueue(worker_func, concurrency)"
+  - "run_pipeline(job_id)"
+  - "POST/GET /api/v1/jobs và GET detail/artifact"
+  - "FastAPI app với lifespan và /artifacts static mount"
+test_mode: tdd
+required_checks:
+  - "pytest tests/test_api.py tests/test_queue.py -v"
+known_baseline_failures: []
+h2:
+  required_for: []
+stop_conditions:
+  - "Dừng nếu cần thay đổi public API/error contract ngoài SPEC-01."
+  - "Dừng nếu cần định nghĩa queue capacity/overload response chưa có authority."
+  - "Dừng nếu cần sửa dependency paths, tests/conftest.py hoặc tests/test_pipeline.py."
+  - "Dừng trước mọi external provider call, credential use hoặc destructive action."
+retry_limit: 2
+evidence_ref: artifacts/evidence/CHG-002/RUN-CHG-002-M4-02/IMP-M4-BACKEND-01.json
+invariant_contract:
+  authority:
+    - "docs/specs/SPEC-02-queue-worker.md: worker pool không vượt concurrency đã cấu hình; app default MAX_CONCURRENT_JOBS=2."
+    - "docs/specs/SPEC-01-api-persistence.md: background worker tự tạo session riêng và không dùng request session."
+  scope: "AsyncioWorkerQueue và run_pipeline thuộc WP-06."
+  allowed:
+    - "Số worker_func đang chạy không vượt concurrency; FastAPI app truyền default settings.max_concurrent_jobs=2."
+    - "Mỗi run_pipeline enter/exit async_session_factory context độc lập."
+  forbidden:
+    - "Vượt concurrency đã cấu hình."
+    - "Giữ hoặc tái sử dụng HTTP request session trong background worker."
+  exceptions: []
+  diagnostic: "Assertion phải nêu giá trị peak/configured hoặc session lifecycle bị vi phạm, trỏ SPEC-01/SPEC-02 và hướng sửa."
+  proof:
+    positive: "concurrency=2 xử lý nhiều jobs với peak active <=2; session context được enter/exit."
+    negative: "TDD RED phải collect thành công và fail vì behavior concurrency/session/API còn thiếu, không được chỉ fail do import, syntax hoặc environment."
