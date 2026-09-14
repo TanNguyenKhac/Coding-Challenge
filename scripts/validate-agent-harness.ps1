@@ -74,6 +74,7 @@ function Assert-ExactDirectories(
 }
 
 $capabilitySkills = @(
+    'git-add-commit',
     'sk-solution-design',
     'sk-backend-engineering',
     'sk-ai-engineering',
