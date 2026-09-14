@@ -209,9 +209,29 @@ Generated sample MP4s are placed in `artifacts/samples/`:
 
 ---
 
+## 📚 Agent Harness & Engineering Guides
+
+This repository implements a production-grade **Agent Harness Layer** designed to structure, constrain, and supercharge AI-assisted software engineering (using tools like **Claude Code CLI**, **OpenAI Codex**, and frontier reasoning models such as Claude 3.7 Thinking, OpenAI o3/o1, and Gemini 3.7 Flash Thinking).
+
+Comprehensive documentation and playbooks are available in [`docs/guides/`](docs/guides/README.md):
+
+- [**01. Harness Architecture & Philosophy**](docs/guides/01-harness-architecture-and-philosophy.md): Why using Git as the single system of record eliminates context rot, hallucinations, and regression bugs. Includes direct comparative analysis against freeform prompting.
+- [**02. Defining Skills & Orchestrating Workflows**](docs/guides/02-skills-and-workflows-definition.md): Anatomy of capability skills (`sk-*`) and 3-phase workflows (`wf-discover`, `wf-implement`, `wf-verify`) guarded by human-in-the-loop gates (**H1** Design, **H2** High-Risk, **H3** Release).
+- [**03. Agent Roles & Sandbox Boundaries**](docs/guides/03-agent-roles-and-sandbox-boundaries.md): Specialized profiles (`architect`, `backend-dev`, `ai-dev`, `reviewer`), why the reviewer must strictly be `read-only`, and single-writer disjoint path safety.
+- [**04. CLI Power Tips & Frontier Models**](docs/guides/04-frontier-models-and-cli-power-tips.md): Extended reasoning model alignment, context window & prompt caching optimization, isolated Git worktrees, and automated test evidence capture in `artifacts/evidence/`.
+- [**05. Discovery & Brainstorming Playbook**](docs/guides/05-brainstorming-and-discovery-playbook.md): Step-by-step playbook to transform vague product ideas into structured discovery contracts and verifiable code without losing control.
+
+---
+
 ## 📂 Repository Structure
 
 ```
+├── .agents/skills/              # Canonical repository skills & workflow definitions
+│   ├── wf-discover/             # Discovery workflow (delegates to architect)
+│   ├── wf-implement/            # Implementation workflow (parallel safe dev packages)
+│   ├── wf-verify/               # Independent verification workflow (read-only reviewer)
+│   └── sk-*/                    # Capability skills (backend, AI, testing, quality, release)
+├── .codex/agents/               # Specialized agent sandbox profiles (architect, devs, reviewer)
 ├── app/
 │   ├── main.py                  # FastAPI application & lifespan worker management
 │   ├── config.py                # Environment configuration (pydantic-settings)
@@ -238,14 +258,18 @@ Generated sample MP4s are placed in `artifacts/samples/`:
 │           ├── slides_node.py   # Parallel chunk Pillow visual workers
 │           └── assembler_node.py# FFmpeg duration sync & MP4 assembly
 ├── docs/
+│   ├── guides/                  # Comprehensive Harness & AI Engineering guides (01-05)
 │   ├── biz.md                   # Product business requirements
 │   ├── specs/                   # Detailed functional specifications (SPEC-01 to SPEC-05)
 │   ├── plans/active/            # Active execution plan (CHG-002)
+│   ├── workflows/               # Handoff contracts & schema definitions
 │   └── ARCHITECTURE.md          # Architectural blueprints & cost analysis
 ├── scripts/
 │   ├── smoke_test.py            # Automated 2-run repeatability test
 │   └── generate_samples.py      # Pre-generate committed sample MP4s
 ├── artifacts/
+│   ├── handoffs/                # Structured inter-phase handoff YAML contracts
+│   ├── evidence/                # Verified test & execution logs
 │   ├── videos/                  # Runtime video output store
 │   └── samples/                 # 3 committed reference sample videos
 └── tests/

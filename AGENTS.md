@@ -37,6 +37,15 @@ and behavior-level proof; do not create parallel control-plane state.
 - `docs/Agentic_Backend_Challenge_AI_Chemistry_Video_Request_Service.md`: full
   original specification from the challenge provider.
 
+## Language
+
+- Use Vietnamese for user-facing responses and for explanatory prose in new or
+  materially edited skills and documentation.
+- Keep source code, code snippets, identifiers, commands, file names, API and
+  schema fields, and established technical terms in English.
+- Follow an explicit user request or an artifact's required language when it
+  differs from these defaults.
+
 ## Codex agentic workflows
 
 Use `.agents/skills/` as the canonical source for both reusable capability
