@@ -1,31 +1,3 @@
-# Coding Challenge: AI Chemistry Video Request Service
-
-## Before You Start
-
-- Completion is not the end goal.
-- You should allocate about 90–120 minutes, and you do not need to spend more time than that.
-- You must use Claude Code, Codex, Cursor Agent, or a similar agentic coding harness while working. If you do not use one, we will not proceed with the application.
-- We care about your planning, architectural decision-making, and ability to guide AI coding agents effectively.
-- Do not try to maximize surface area. Be deliberate about what you focus on.
-- If you feel like taking more time to polish it up, feel free to send us a version of the feature that you are proud of.
-- While you work, record:
-  - your full screen
-  - your face
-
-You can do this by opening a Zoom meeting by yourself and recording the session locally.
-
-We want to see how you actually approach the problem in real time, not just the final artifact.
-
-## Scenario
-
-Growtrics is building AI-native learning experiences.
-
-For this challenge, imagine a learner wants to request a short educational video explaining a chemistry concept. The product should feel like a backend video request service: a client submits a concept request, the backend processes it as a video-generation job, and the client can check when the video is ready.
-
-Latency is not a major issue. The video does not need to generate instantly. It is fine for the request to take time, as long as the backend handles that waiting state clearly and exposes it through the API.
-
-This is a backend challenge. Do not build a frontend. If you need a client for demonstration, use curl, a simple script, API docs, Postman, or another lightweight API client.
-
 ## Product Requirements
 
 Build a working backend prototype of an AI chemistry video request service.
@@ -121,27 +93,3 @@ We are not asking for production polish, but the demo should be understandable a
 For this backend role, we will pay particular attention to API clarity, job-state handling, error handling, observability, and whether the generation boundary could realistically evolve into a production service.
 
 We will also evaluate whether your generated videos are visually pleasing, educationally clear, and cost-conscious. A strong solution should explain what you optimized for, what each generated artifact roughly costs or would cost in production, and how the backend avoids flaky generation behaviour caused by non-deterministic LLM or media-generation outputs.
-
-## How to Submit
-
-Send your submission by email to careers@growtrics.ai. This is the main point of contact for this challenge. Please use it for your submission and for any questions along the way. When you submit, CC praveen.k@growtrics.ai and wayne.le@growtrics.ai.
-
-## Deliverables
-
-Please send back:
-
-- a codebase containing the FastAPI backend
-- a short `README.md` with setup, run, API, and test instructions
-- a short architecture note explaining the job lifecycle, persistence/artifact boundary, and AI/video-generation boundary
-- a demo video or API walkthrough showcasing the three required chemistry concepts
-- the three best generated videos committed into the repo, along with the input learner query that produced each video
-- your GitHub link
-- please make sure careers@growtrics.ai, praveen.k@growtrics.ai, and wayne.le@growtrics.ai have read access to the repository
-- a zip file containing your work
-- a Google Drive link to the recording of:
-  - your full screen
-  - your face
-
-The committed generated videos are important because we want to track exactly what the system produced at the time of submission.
-
-Again, completion is not the point. We care more about whether you were strategic, whether you chose the right slice to tackle, and how effectively you used Claude Code, Codex, Cursor Agent, or a similar agentic coding harness while coding.

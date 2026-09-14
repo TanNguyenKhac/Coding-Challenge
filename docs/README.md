@@ -15,6 +15,9 @@ Start with the smallest authoritative surface.
 - [`patterns/encoding-invariants.md`](patterns/encoding-invariants.md): turn
   accepted architecture, reliability, security, and quality rules into native
   mechanical validation.
+- [`guides/`](guides/README.md): comprehensive guides on Harness architecture,
+  skills & workflow definition, agent roles, frontier models & CLI power tips,
+  and brainstorming playbooks.
 - `templates/`: optional decision, plan, runbook, and Harness-improvement
   structures.
 

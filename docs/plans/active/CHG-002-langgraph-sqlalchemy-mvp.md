@@ -415,12 +415,12 @@ ffprobe artifacts/samples/*.mp4
 
 | WP | Status | Notes |
 |---|---|---|
-| WP-01 | pending | Scaffold, models, VideoConfig, VideoScript, LLM factory |
-| WP-02 | pending | JobRepository, startup stuck jobs reset |
-| WP-03 | pending | LangGraph StateGraph topology, node stubs |
-| WP-04 | pending | Structured Output script_node, validator_node |
-| WP-05 | pending | Parallel chunk audio & slides, FFmpeg sync assembler |
-| WP-06 | pending | JobQueue, AsyncioWorkerQueue, API endpoints |
-| WP-07 | pending | Unit tests suite |
+| WP-01 | completed | Scaffold, models, VideoConfig, VideoScript, LLM factory |
+| WP-02 | completed | JobRepository, startup stuck jobs reset |
+| WP-03 | completed | LangGraph StateGraph topology, node stubs |
+| WP-04 | completed | Structured Output script_node, validator_node |
+| WP-05 | completed | Parallel chunk audio & slides, FFmpeg sync assembler |
+| WP-06 | completed | JobQueue, AsyncioWorkerQueue, worker session, API endpoints, lifespan/static mount |
+| WP-07 | in_progress | Unit tests suite |
 | WP-08 | pending | Smoke test & 3 sample MP4s |
 | WP-09 | pending | README & ARCHITECTURE docs |
